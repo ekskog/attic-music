@@ -228,6 +228,22 @@
             <span class="nav-icon">💿</span> Albums
           </div>
         </div>
+        <div class="nav-section">
+          <div class="nav-label">Integrations</div>
+          <div class="nav-item" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span class="nav-icon">🔗</span>
+              <div>
+                <div style="font-size:13px;">Last.fm</div>
+                <div style="font-size:11px;color:var(--text-muted);">{{ lastfmLinked ? 'Linked' : 'Not linked' }}</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <button class="logout-btn" style="font-size:11px;padding:6px;" @click="startLastfmAuth">Link</button>
+              <button class="logout-btn" style="font-size:11px;padding:6px;" @click="completeLastfmAuth">Complete</button>
+            </div>
+          </div>
+        </div>
       </nav>
       <div class="sidebar-footer">
         <button class="logout-btn" @click="logout">Sign out</button>
@@ -495,6 +511,7 @@ createApp({
     const loginForm = reactive({ server: '', username: '', password: '' });
     const config    = reactive({ server: '', username: '', password: '' });
     const lastfmToken = ref(null);
+    const lastfmLinked = ref(false);
 
     function hexEncode(s) {
       return Array.from(s).map(c => c.charCodeAt(0).toString(16).padStart(2,'0')).join('');
@@ -566,6 +583,7 @@ createApp({
         if (!session) { alert('Could not obtain session key from Last.fm'); return; }
         localStorage.setItem('lastfm_session_key', session);
         scrobbleEnabled.value = true;
+        lastfmLinked.value = true;
         alert('Last.fm linked and session stored locally.');
       } catch (e) { alert('Failed to complete Last.fm auth'); }
     }
@@ -839,6 +857,8 @@ createApp({
           loadView();
         } catch(e) {}
       }
+      const session = localStorage.getItem('lastfm_session_key');
+      if (session) lastfmLinked.value = true;
     });
 
     return {
