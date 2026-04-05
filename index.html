@@ -802,19 +802,31 @@ createApp({
     function onImageError(e) { try { if (e?.target) e.target.style.display = 'none'; } catch(_) {} }
 
     // ── INIT ─────────────────────────────────────────────
-    onMounted(() => {
-      const saved = localStorage.getItem('attic_cfg');
-      if (saved) {
-        try {
-          const c = JSON.parse(saved);
-          Object.assign(config, c);
-          Object.assign(loginForm, c);
-          loggedIn.value = true;
-          loadView();
-          startScrobblePolling();
-        } catch(e) {}
+onMounted(async () => {
+  // Load config from server first
+  try {
+    const res = await fetch('/config.json');
+    const cfg = await res.json();
+    Object.assign(loginForm, cfg);
+    Object.assign(config, cfg);
+  } catch(e) {}
+
+  // Then check if we have a saved session (password)
+  const saved = localStorage.getItem('attic_cfg');
+  if (saved) {
+    try {
+      const c = JSON.parse(saved);
+      // Only restore password from localStorage, config.json wins for everything else
+      if (c.password) {
+        config.password   = c.password;
+        loginForm.password = c.password;
       }
-    });
+      loggedIn.value = true;
+      loadView();
+      startScrobblePolling();
+    } catch(e) {}
+  }
+});
 
     return {
       loggedIn, logging, loginError, loginForm, config,

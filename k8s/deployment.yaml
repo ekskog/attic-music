@@ -13,11 +13,39 @@ spec:
       labels:
         app: attic-music
     spec:
+      initContainers:
+        - name: config-gen
+          image: busybox
+          env:
+            - name: LASTFM_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: lastfm-secret
+                  key: LASTFM_API_KEY
+          command:
+            - sh
+            - -c
+            - |
+              cat > /config/config.json <<EOF
+              {
+                "server": "https://gonic.ekskog.net",
+                "username": "admin",
+                "lastfmUser": "your-lastfm-username",
+                "lastfmKey": "$LASTFM_API_KEY"
+              }
+              EOF
+          volumeMounts:
+            - name: config-vol
+              mountPath: /config
       containers:
         - name: attic
-          image:  ghcr.io/ekskog/attic-music:latest
+          image: ghcr.io/ekskog/attic-music:latest
           ports:
             - containerPort: 80
-          envFrom:
-            - secretRef:
-                name: lastfm-secret
+          volumeMounts:
+            - name: config-vol
+              mountPath: /usr/share/nginx/html/config.json
+              subPath: config.json
+      volumes:
+        - name: config-vol
+          emptyDir: {}
