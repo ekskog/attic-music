@@ -78,3 +78,17 @@ jobs:
               kubectl apply -f "$f" || exit 1
             fi
           done
+
+      - name: Set deployment image and wait for rollout
+        env:
+          IMAGE: ${{ needs.build-and-push.outputs.image }}
+        run: |
+          # Update the deployment image if deployment exists
+          if kubectl get deployment attic-music -n webapps >/dev/null 2>&1; then
+            echo "Setting deployment image to ${IMAGE}"
+            kubectl set image deployment/attic-music attic=${IMAGE} -n webapps || true
+            echo "Waiting for rollout to finish"
+            kubectl rollout status deployment/attic-music -n webapps --timeout=120s || true
+          else
+            echo "Deployment attic-music not found in namespace webapps; skipping image set"
+          fi
