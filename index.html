@@ -19,34 +19,30 @@
       --accent-light: #F2E8E3;
       --sidebar-w: 240px;
       --player-h: 90px;
-      --mobile-header-h: 60px;
+      --mobile-h: 60px;
     }
 
-    body { 
-      font-family: 'DM Sans', sans-serif; 
-      background: var(--bg); 
-      color: var(--text); 
-      height: 100vh; 
-      overflow: hidden; 
-      -webkit-tap-highlight-color: transparent;
-    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; -webkit-tap-highlight-color: transparent; }
 
-    /* LOGIN */
-    .login { display: flex; align-items: center; justify-content: center; height: 100vh; padding: 20px; overflow-y: auto; }
-    .login-card { width: 100%; max-width: 360px; background: var(--surface); border: 1px solid var(--border); padding: 40px; }
+    /* LOGIN VIEW */
+    .login { display: flex; align-items: center; justify-content: center; height: 100vh; padding: 20px; overflow-y: auto; background: var(--bg); }
+    .login-card { width: 100%; max-width: 380px; background: var(--surface); border: 1px solid var(--border); padding: 40px 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
     .login-title { font-family: 'Cormorant Garamond', serif; font-size: 36px; font-weight: 600; margin-bottom: 4px; }
     .login-subtitle { color: var(--text-muted); font-size: 13px; margin-bottom: 24px; }
     .field { margin-bottom: 16px; }
-    .field label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
-    .field input { width: 100%; border: 1px solid var(--border); background: var(--bg); padding: 12px; font-family: inherit; font-size: 14px; outline: none; }
-    .btn-primary { width: 100%; background: var(--text); color: white; border: none; padding: 14px; font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity 0.2s; }
-    .btn-primary:disabled { opacity: 0.5; }
-    .error-msg { color: var(--accent); font-size: 13px; margin-top: 12px; text-align: center; }
+    .field label { display: block; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 6px; }
+    .field input { width: 100%; border: 1px solid var(--border); background: var(--bg); padding: 12px; font-family: inherit; font-size: 14px; outline: none; border-radius: 2px; }
+    .field input:focus { border-color: var(--accent); }
+    .btn-primary { width: 100%; background: var(--text); color: white; border: none; padding: 14px; font-size: 13px; font-weight: 500; cursor: pointer; border-radius: 2px; transition: background 0.2s; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .error-msg { color: var(--accent); font-size: 13px; margin-top: 15px; text-align: center; }
 
-    /* LAYOUT */
+    /* MAIN APP LAYOUT */
     .app { display: flex; height: 100vh; position: relative; }
-    .mobile-header { display: none; position: fixed; top: 0; left: 0; right: 0; height: var(--mobile-header-h); background: var(--surface); border-bottom: 1px solid var(--border); z-index: 100; align-items: center; padding: 0 16px; justify-content: space-between; }
     
+    .mobile-header { display: none; position: fixed; top: 0; left: 0; right: 0; height: var(--mobile-h); background: var(--surface); border-bottom: 1px solid var(--border); z-index: 100; align-items: center; padding: 0 16px; justify-content: space-between; }
+    .menu-btn { background: none; border: none; font-size: 24px; cursor: pointer; }
+
     .sidebar { width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; height: 100vh; transition: transform 0.3s ease; z-index: 1001; }
     .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; }
 
@@ -54,7 +50,10 @@
     .content-scroll { flex: 1; overflow-y: auto; padding: 24px; padding-bottom: 160px; -webkit-overflow-scrolling: touch; }
 
     /* PLAYER */
-    .player { position: fixed; bottom: 0; left: 0; right: 0; height: var(--player-h); background: var(--surface); border-top: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; z-index: 200; }
+    .player { position: fixed; bottom: 0; left: 0; right: 0; height: var(--player-h); background: var(--surface); border-top: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; z-index: 200; gap: 15px; }
+    .player-cover { width: 44px; height: 44px; background: var(--accent-light); flex-shrink: 0; border-radius: 2px; }
+    .player-info { flex: 1; min-width: 0; }
+    .player-title { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
     /* RESPONSIVE */
     @media (max-width: 850px) {
@@ -62,8 +61,9 @@
       .sidebar { position: fixed; transform: translateX(-100%); }
       .sidebar.open { transform: translateX(0); }
       .sidebar-overlay.active { display: block; }
-      .content { padding-top: var(--mobile-header-h); }
-      .player { height: 130px; flex-direction: column; justify-content: center; padding: 10px; }
+      .content { padding-top: var(--mobile-h); }
+      .player { height: 130px; flex-direction: column; justify-content: center; text-align: center; padding: 10px; }
+      .player-cover { display: none; }
     }
   </style>
 </head>
@@ -77,22 +77,201 @@
       
       <div class="field">
         <label>Server URL</label>
-        <input v-model="loginForm.server" placeholder="https://..." />
+        <input v-model="loginForm.server" placeholder="https://..." @keyup.enter="login" />
       </div>
       <div class="field">
         <label>Username</label>
-        <input v-model="loginForm.username" />
+        <input v-model="loginForm.username" @keyup.enter="login" />
       </div>
       <div class="field">
         <label>Password</label>
-        <input v-model="loginForm.password" type="password" />
+        <input v-model="loginForm.password" type="password" @keyup.enter="login" />
       </div>
 
-      <div style="margin: 20px 0; border-top: 1px solid var(--border); padding-top: 20px;">
+      <div style="margin: 20px 0; padding-top: 20px; border-top: 1px solid var(--border);">
         <div class="field">
-          <label>Last.fm User (Optional)</label>
-          <input v-model="loginForm.lastfmUser" />
+          <label>Last.fm Username (Optional)</label>
+          <input v-model="loginForm.lastfmUser" placeholder="username" />
         </div>
         <div class="field">
           <label>Last.fm API Key (Optional)</label>
-          <input v-model="login
+          <input v-model="loginForm.lastfmKey" placeholder="api key" />
+        </div>
+      </div>
+
+      <button class="btn-primary" @click="login" :disabled="logging">
+        {{ logging ? 'Connecting...' : 'Connect' }}
+      </button>
+      
+      <div v-if="loginError" class="error-msg">{{ loginError }}</div>
+    </div>
+  </div>
+
+  <div v-else class="app">
+    <header class="mobile-header">
+      <button class="menu-btn" @click="mobileMenuOpen = true">☰</button>
+      <div style="font-family:'Cormorant Garamond'; font-size: 20px; font-weight:600;">Attic</div>
+      <div style="width: 24px;"></div>
+    </header>
+
+    <div class="sidebar-overlay" :class="{active: mobileMenuOpen}" @click="mobileMenuOpen = false"></div>
+
+    <aside class="sidebar" :class="{open: mobileMenuOpen}">
+      <div style="padding: 24px; border-bottom: 1px solid var(--border);">
+        <div class="login-title" style="font-size:24px;">Attic</div>
+      </div>
+      <nav style="padding: 20px; flex: 1;">
+        <div @click="setView('folders')" :style="{ color: view === 'folders' ? 'var(--accent)' : 'inherit' }" style="cursor:pointer; margin-bottom:18px; font-size:14px;">📁 Folders</div>
+        <div @click="setView('artists')" :style="{ color: view === 'artists' ? 'var(--accent)' : 'inherit' }" style="cursor:pointer; margin-bottom:18px; font-size:14px;">🎤 Artists</div>
+        <div @click="setView('albums')" :style="{ color: view === 'albums' ? 'var(--accent)' : 'inherit' }" style="cursor:pointer; font-size:14px;">💿 Albums</div>
+      </nav>
+      <div style="padding: 20px; border-top: 1px solid var(--border);">
+        <button @click="logout" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:12px;">Sign Out</button>
+      </div>
+    </aside>
+
+    <main class="content">
+      <div class="content-scroll">
+        <h2 style="font-family:'Cormorant Garamond'; font-size: 28px; margin-bottom: 20px;">{{ view.charAt(0).toUpperCase() + view.slice(1) }}</h2>
+        
+        <div v-if="loading" style="color: var(--text-muted);">Loading library...</div>
+        
+        <div v-if="view === 'folders'" class="dir-list">
+          <div v-for="item in currentDirItems" :key="item.id" @click="handleDirItem(item)" style="padding:14px; border-bottom:1px solid var(--border); cursor:pointer; font-size:14px; display:flex; gap:10px;">
+            <span>{{ item.isDir ? '📁' : '🎵' }}</span>
+            <span>{{ item.title || item.name }}</span>
+          </div>
+        </div>
+
+        <div v-else style="color: var(--text-muted); font-size:14px;">Selection loaded. Select a track to play.</div>
+      </div>
+    </main>
+
+    <div class="player" v-if="currentTrack">
+      <div class="player-cover"></div>
+      <div class="player-info">
+        <div class="player-title">{{ currentTrack.title }}</div>
+        <div style="font-size:11px; color:var(--text-muted);">{{ currentTrack.artist }}</div>
+      </div>
+      <div style="display:flex; gap:15px; align-items:center;">
+        <button @click="togglePlay" style="background:var(--text); color:white; border:none; width:36px; height:36px; border-radius:50%; cursor:pointer;">
+          {{ isPlaying ? '⏸' : '▶' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const { createApp, ref, reactive, onMounted } = Vue;
+
+createApp({
+  setup() {
+    // UI States
+    const loggedIn = ref(false);
+    const logging = ref(false);
+    const loginError = ref('');
+    const mobileMenuOpen = ref(false);
+    const view = ref('folders');
+    const loading = ref(false);
+
+    // Data States
+    const loginForm = reactive({ server: '', username: '', password: '', lastfmUser: '', lastfmKey: '' });
+    const config = reactive({ server: '', username: '', password: '', lastfmUser: '', lastfmKey: '' });
+    const currentDirItems = ref([]);
+    
+    // Audio States
+    const audio = new Audio();
+    const isPlaying = ref(false);
+    const currentTrack = ref(null);
+
+    function hexEncode(s) {
+      return Array.from(s).map(c => c.charCodeAt(0).toString(16).padStart(2,'0')).join('');
+    }
+
+    function buildUrl(endpoint, params = {}) {
+      const base = config.server.replace(/\/$/, '');
+      const auth = `u=${encodeURIComponent(config.username)}&p=enc:${hexEncode(config.password)}&v=1.16.1&c=attic&f=json`;
+      const extra = Object.entries(params).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+      return `${base}/rest/${endpoint}?${auth}${extra ? '&'+extra : ''}`;
+    }
+
+    async function api(endpoint, params = {}) {
+      try {
+        const res = await fetch(buildUrl(endpoint, params));
+        const data = await res.json();
+        return data['subsonic-response'];
+      } catch (e) {
+        return { status: 'failed' };
+      }
+    }
+
+    async function login() {
+      if (!loginForm.server || !loginForm.username) {
+        loginError.value = "Server and Username are required.";
+        return;
+      }
+      logging.value = true;
+      loginError.value = '';
+      Object.assign(config, loginForm);
+      
+      const res = await api('ping');
+      if (res.status === 'ok') {
+        loggedIn.value = true;
+        localStorage.setItem('attic_config', JSON.stringify(config));
+        loadFolders();
+      } else {
+        loginError.value = 'Ping failed. Check URL and credentials.';
+      }
+      logging.value = false;
+    }
+
+    async function loadFolders() {
+      loading.value = true;
+      const res = await api('getMusicDirectory', { id: 'root' });
+      currentDirItems.value = res.directory?.child || [];
+      loading.value = false;
+    }
+
+    function handleDirItem(item) {
+      if (item.isDir) return; // Add folder navigation here later
+      currentTrack.value = item;
+      audio.src = buildUrl('stream', { id: item.id });
+      audio.play();
+      isPlaying.value = true;
+    }
+
+    function togglePlay() {
+      if (audio.paused) { audio.play(); isPlaying.value = true; }
+      else { audio.pause(); isPlaying.value = false; }
+    }
+
+    function setView(v) {
+      view.value = v;
+      mobileMenuOpen.value = false;
+      if (v === 'folders') loadFolders();
+    }
+
+    onMounted(() => {
+      const saved = localStorage.getItem('attic_config');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          Object.assign(loginForm, parsed);
+          login();
+        } catch(e) { localStorage.removeItem('attic_config'); }
+      }
+    });
+
+    return {
+      loggedIn, logging, loginError, loginForm, login,
+      logout: () => { loggedIn.value = false; localStorage.removeItem('attic_config'); },
+      view, setView, loading, mobileMenuOpen,
+      currentDirItems, currentTrack, isPlaying, togglePlay, handleDirItem
+    };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>
