@@ -40,6 +40,7 @@ spec:
       containers:
         - name: attic
           image: ghcr.io/ekskog/attic-music:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
           volumeMounts:

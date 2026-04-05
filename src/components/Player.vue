@@ -1,0 +1,123 @@
+<template>
+  <!-- DESKTOP PLAYER -->
+  <footer class="hidden md:flex h-20 bg-white border-t border-stone-200 items-center px-6 gap-6 z-50 flex-shrink-0">
+
+    <!-- TRACK INFO -->
+    <div class="flex items-center gap-3 w-60 flex-shrink-0 overflow-hidden">
+      <div class="w-11 h-11 bg-amber-50 flex-shrink-0 overflow-hidden flex items-center justify-center text-xl rounded">
+        <img v-if="player.currentTrack?.coverArt" :src="coverUrl(player.currentTrack.coverArt)" class="w-full h-full object-cover" @error="onImgError" />
+        <span v-else>🎵</span>
+      </div>
+      <div class="overflow-hidden">
+        <div class="text-sm font-medium truncate">{{ player.currentTrack?.title || '—' }}</div>
+        <div class="text-xs text-stone-400 truncate">{{ player.currentTrack?.artist || '' }}</div>
+      </div>
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="flex-1 flex flex-col items-center gap-1.5">
+      <div class="flex items-center gap-4">
+        <button class="ctrl" :class="{ 'text-amber-700': player.shuffle }" @click="player.shuffle = !player.shuffle" title="Shuffle">⇄</button>
+        <button class="ctrl" @click="player.prevTrack()" title="Previous">⏮</button>
+        <button
+          class="w-9 h-9 rounded-full bg-stone-900 text-white flex items-center justify-center hover:bg-amber-700 transition-colors"
+          @click="player.togglePlay()"
+        >
+          {{ player.isPlaying ? '⏸' : '▶' }}
+        </button>
+        <button class="ctrl" @click="player.nextTrack()" title="Next">⏭</button>
+        <button class="ctrl" :class="{ 'text-amber-700': player.repeat }" @click="player.repeat = !player.repeat" title="Repeat">↻</button>
+      </div>
+
+      <!-- PROGRESS -->
+      <div class="flex items-center gap-2 w-full max-w-lg">
+        <span class="text-xs text-stone-400 w-9 flex-shrink-0 tabular-nums">{{ player.fmt(player.currentTime) }}</span>
+        <div
+          ref="progressEl"
+          class="flex-1 h-0.5 bg-stone-200 rounded cursor-pointer group"
+          @click="handleSeek"
+        >
+          <div class="h-full bg-stone-900 rounded group-hover:bg-amber-700 transition-colors" :style="{ width: player.progressPct + '%' }"></div>
+        </div>
+        <span class="text-xs text-stone-400 w-9 flex-shrink-0 text-right tabular-nums">{{ player.fmt(player.duration) }}</span>
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="w-40 flex items-center justify-end gap-2 flex-shrink-0">
+      <button
+        class="text-xs border border-stone-200 px-2.5 py-1.5 rounded text-stone-400 hover:border-amber-700 hover:text-amber-700 hover:bg-amber-50 transition-all"
+        :class="{ 'border-amber-700 text-amber-700 bg-amber-50': showQueue }"
+        @click="showQueue = !showQueue"
+      >
+        Queue{{ player.queue.length ? ` (${player.queue.length})` : '' }}
+      </button>
+    </div>
+
+    <!-- DESKTOP QUEUE PANEL -->
+    <Transition name="queue">
+      <div v-if="showQueue && player.queue.length" class="fixed bottom-20 right-0 w-72 max-h-96 bg-white border border-stone-200 border-b-0 flex flex-col shadow-lg z-40">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-stone-200 flex-shrink-0">
+          <span class="text-xs font-medium uppercase tracking-widest">Queue ({{ player.queue.length }})</span>
+          <button class="text-xs text-stone-400 hover:text-amber-700 transition-colors" @click="player.clearQueue()">Clear</button>
+        </div>
+        <div class="overflow-y-auto flex-1">
+          <div
+            v-for="(track, i) in player.queue" :key="i"
+            class="flex items-center gap-2.5 px-4 py-2.5 cursor-pointer hover:bg-stone-50 transition-colors"
+            :class="{ 'text-amber-700': i === player.currentIndex }"
+            @click="player.jumpToQueue(i)"
+          >
+            <span class="text-xs text-stone-400 w-4 text-right flex-shrink-0">{{ i + 1 }}</span>
+            <div class="flex-1 overflow-hidden">
+              <div class="text-xs font-medium truncate">{{ track.title }}</div>
+              <div class="text-xs text-stone-400 truncate">{{ track.artist }}</div>
+            </div>
+            <span class="text-xs text-stone-300 flex-shrink-0">{{ player.fmt(track.duration) }}</span>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </footer>
+
+  <!-- MOBILE MINI PLAYER -->
+  <MiniPlayer @expand="fullPlayerOpen = true" />
+
+  <!-- MOBILE FULL PLAYER -->
+  <FullPlayer :show="fullPlayerOpen" @collapse="fullPlayerOpen = false" />
+
+  <!-- MOBILE BOTTOM NAV -->
+  <BottomNav />
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { usePlayerStore } from '../stores/player'
+import { coverUrl } from '../api/subsonic'
+import MiniPlayer from './MiniPlayer.vue'
+import FullPlayer from './FullPlayer.vue'
+import BottomNav  from './BottomNav.vue'
+
+const player        = usePlayerStore()
+const showQueue     = ref(false)
+const fullPlayerOpen = ref(false)
+const progressEl    = ref(null)
+
+function handleSeek(event) {
+  player.seek(event, progressEl.value)
+}
+
+function onImgError(e) {
+  try { if (e?.target) e.target.style.display = 'none' } catch(_) {}
+}
+</script>
+
+<style scoped>
+@reference "../style.css";
+
+.ctrl {
+  @apply text-stone-400 hover:text-stone-900 transition-colors cursor-pointer bg-transparent border-none text-base leading-none p-1;
+}
+.queue-enter-active, .queue-leave-active { transition: opacity 0.15s, transform 0.15s; }
+.queue-enter-from, .queue-leave-to { opacity: 0; transform: translateY(8px); }
+</style>

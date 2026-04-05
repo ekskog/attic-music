@@ -1,0 +1,53 @@
+<template>
+  <div
+    v-if="player.currentTrack"
+    class="fixed left-0 right-0 h-16 bg-white border-t border-stone-200 flex items-center px-4 gap-3 z-40 cursor-pointer md:hidden"
+    :style="{ bottom: '64px' }"
+    @click="emit('expand')"
+  >
+    <!-- COVER -->
+    <div class="w-10 h-10 bg-amber-50 flex-shrink-0 overflow-hidden flex items-center justify-center text-lg rounded">
+      <img v-if="player.currentTrack.coverArt" :src="coverUrl(player.currentTrack.coverArt)" class="w-full h-full object-cover" @error="onImgError" />
+      <span v-else>🎵</span>
+    </div>
+
+    <!-- TRACK INFO -->
+    <div class="flex-1 overflow-hidden">
+      <div class="text-sm font-medium truncate">{{ player.currentTrack.title }}</div>
+      <div class="text-xs text-stone-400 truncate">{{ player.currentTrack.artist }}</div>
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="flex items-center gap-3 flex-shrink-0">
+      <button
+        class="w-9 h-9 flex items-center justify-center text-stone-700 active:text-amber-700"
+        @click.stop="player.togglePlay()"
+      >
+        <span class="text-xl">{{ player.isPlaying ? '⏸' : '▶' }}</span>
+      </button>
+      <button
+        class="w-9 h-9 flex items-center justify-center text-stone-400 active:text-amber-700"
+        @click.stop="player.nextTrack()"
+      >
+        <span class="text-xl">⏭</span>
+      </button>
+    </div>
+
+    <!-- PROGRESS BAR -->
+    <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-stone-100">
+      <div class="h-full bg-amber-700 transition-all" :style="{ width: player.progressPct + '%' }"></div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { usePlayerStore } from '../stores/player'
+import { coverUrl } from '../api/subsonic'
+
+const player = usePlayerStore()
+const emit   = defineEmits(['expand'])
+
+function onImgError(e) {
+  try { if (e?.target) e.target.style.display = 'none' } catch(_) {}
+}
+</script>
