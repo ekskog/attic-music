@@ -231,6 +231,10 @@
       </nav>
       <div class="sidebar-footer">
         <button class="logout-btn" @click="logout">Sign out</button>
+        <div style="margin-top:8px; display:flex; gap:6px;">
+          <button class="logout-btn" @click="startLastfmAuth">Link Last.fm</button>
+          <button class="logout-btn" @click="completeLastfmAuth">Complete Last.fm auth</button>
+        </div>
       </div>
     </div>
 
@@ -470,6 +474,9 @@
         <button class="queue-toggle" :class="{active: showQueue}" @click="showQueue = !showQueue">
           Queue{{ queue.length ? ` (${queue.length})` : '' }}
         </button>
+        <button class="queue-toggle" :class="{active: scrobbleEnabled}" @click="scrobbleEnabled = !scrobbleEnabled" title="Toggle Last.fm scrobbling">
+          Scrobble
+        </button>
       </div>
     </div>
 
@@ -487,6 +494,7 @@ createApp({
     const loginError = ref('');
     const loginForm = reactive({ server: '', username: '', password: '' });
     const config    = reactive({ server: '', username: '', password: '' });
+    const lastfmToken = ref(null);
 
     function hexEncode(s) {
       return Array.from(s).map(c => c.charCodeAt(0).toString(16).padStart(2,'0')).join('');
@@ -533,6 +541,33 @@ createApp({
       } finally {
         logging.value = false;
       }
+    }
+
+    async function startLastfmAuth() {
+      try {
+        const r = await fetch('/api/auth/token');
+        const j = await r.json();
+        const token = j?.token;
+        const apiKey = j?.api_key;
+        if (!token || !apiKey) { alert('Could not get token from Last.fm'); return; }
+        lastfmToken.value = token;
+        const url = `https://www.last.fm/api/auth/?api_key=${encodeURIComponent(apiKey)}&token=${encodeURIComponent(token)}`;
+        window.open(url, '_blank');
+        alert('A new window opened; after authorizing on Last.fm, return here and click "Complete Last.fm auth".');
+      } catch (e) { alert('Failed to start Last.fm auth'); }
+    }
+
+    async function completeLastfmAuth() {
+      if (!lastfmToken.value) { alert('No token found. Click "Link Last.fm" first.'); return; }
+      try {
+        const r = await fetch('/api/auth/session', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ token: lastfmToken.value }) });
+        const j = await r.json();
+        const session = j?.session?.key || j?.session_key || (j?.session && j.session.key);
+        if (!session) { alert('Could not obtain session key from Last.fm'); return; }
+        localStorage.setItem('lastfm_session_key', session);
+        scrobbleEnabled.value = true;
+        alert('Last.fm linked and session stored locally.');
+      } catch (e) { alert('Failed to complete Last.fm auth'); }
     }
 
     function logout() {
@@ -697,6 +732,7 @@ createApp({
     const shuffle      = ref(false);
     const repeat       = ref(false);
     const showQueue    = ref(false);
+    const scrobbleEnabled = ref(false);
     const currentTime  = ref(0);
     const duration     = ref(0);
 
@@ -725,6 +761,7 @@ createApp({
       currentTrack.value = track;
       audio.src = streamUrl(track.id);
       audio.play();
+      try { if (scrobbleEnabled.value) scrobbleTrack(track); } catch(_) {}
     }
 
     function playFromQueue(index) {
@@ -734,6 +771,18 @@ createApp({
       currentTrack.value = track;
       audio.src = streamUrl(track.id);
       audio.play();
+      try { if (scrobbleEnabled.value) scrobbleTrack(track); } catch(_) {}
+    }
+
+    async function scrobbleTrack(track) {
+      try {
+        const session = localStorage.getItem('lastfm_session_key');
+        await fetch('/api/scrobble', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ artist: track.artist, track: track.title || track.name, album: track.album || '', timestamp: Math.floor(Date.now()/1000), session_key: session })
+        });
+      } catch (e) { /* ignore errors */ }
     }
 
     function togglePlay() {
@@ -801,6 +850,7 @@ createApp({
       allAlbums,
       queue, currentIndex, currentTrack, isPlaying,
       shuffle, repeat, showQueue, currentTime, duration, progressPct,
+      scrobbleEnabled, lastfmToken, startLastfmAuth, completeLastfmAuth,
       login, logout,
       setView, handleDirItem, goToFolderRoot, goToBreadcrumb,
       openArtist, openAlbum, openAlbumFromList, playAlbumById,

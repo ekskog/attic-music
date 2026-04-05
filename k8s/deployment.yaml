@@ -7,14 +7,17 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: attic
+      app: attic-music
   template:
     metadata:
       labels:
-        app: attic
+        app: attic-music
     spec:
       containers:
         - name: attic
-          image: <your-registry>/attic:latest
+          image:  ghcr.io/ekskog/attic-music:latest
           ports:
             - containerPort: 80
+          envFrom:
+            - secretRef:
+                name: lastfm-secret
