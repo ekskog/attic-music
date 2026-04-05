@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attic</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #F8F6F2;
+      --surface: #FFFFFF;
+      --border: #E5E2DC;
+      --text: #1C1C1A;
+      --text-muted: #8A887F;
+      --accent: #B85C38;
+      --accent-light: #F2E8E3;
+      --sidebar-w: 220px;
+      --player-h: 80px;
+    }
+
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+
+    /* LOGIN */
+    .login { display: flex; align-items: center; justify-content: center; height: 100vh; }
+    .login-card { width: 360px; background: var(--surface); border: 1px solid var(--border); padding: 48px 40px; }
+    .login-title { font-family: 'Cormorant Garamond', serif; font-size: 40px; font-weight: 600; margin-bottom: 4px; }
+    .login-subtitle { color: var(--text-muted); font-size: 13px; margin-bottom: 32px; }
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 6px; }
+    .field input { width: 100%; border: 1px solid var(--border); background: var(--bg); padding: 10px 12px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text); outline: none; transition: border-color 0.15s; }
+    .field input:focus { border-color: var(--accent); }
+    .btn-primary { width: 100%; background: var(--text); color: white; border: none; padding: 12px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; letter-spacing: 0.04em; cursor: pointer; margin-top: 8px; transition: background 0.15s; }
+    .btn-primary:hover:not(:disabled) { background: var(--accent); }
+    .btn-primary:disabled { opacity: 0.6; cursor: default; }
+    .error-msg { color: var(--accent); font-size: 13px; margin-top: 12px; }
+
+    /* MAIN LAYOUT */
+    .app { display: flex; height: 100vh; }
+
+    /* SIDEBAR */
+    .sidebar { width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; height: 100vh; }
+    .sidebar-header { padding: 28px 24px 20px; border-bottom: 1px solid var(--border); }
+    .app-name { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 600; }
+    .server-name { font-size: 11px; color: var(--text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .nav { padding: 16px 0; flex: 1; }
+    .nav-section { padding: 0 16px; margin-bottom: 4px; }
+    .nav-label { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); padding: 8px 8px 4px; }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 8px; border-radius: 4px; cursor: pointer; font-size: 13px; color: var(--text); transition: all 0.1s; -webkit-user-select: none; user-select: none; }
+    .nav-item:hover { background: var(--bg); }
+    .nav-item.active { background: var(--accent-light); color: var(--accent); font-weight: 500; }
+    .nav-icon { width: 16px; text-align: center; }
+    .sidebar-footer { padding: 16px 24px; border-top: 1px solid var(--border); }
+    .logout-btn { font-size: 12px; color: var(--text-muted); cursor: pointer; background: none; border: none; font-family: 'DM Sans', sans-serif; padding: 0; }
+    .logout-btn:hover { color: var(--accent); }
+
+    /* CONTENT */
+    .content { flex: 1; display: flex; flex-direction: column; overflow: hidden; height: 100vh; }
+    .content-header { padding: 28px 32px 20px; border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
+    .breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); margin-bottom: 8px; flex-wrap: wrap; }
+    .breadcrumb-item { cursor: pointer; }
+    .breadcrumb-item:hover { color: var(--accent); }
+    .breadcrumb-sep { opacity: 0.4; }
+    .content-title { font-family: 'Cormorant Garamond', serif; font-size: 30px; font-weight: 600; }
+    .content-scroll { flex: 1; overflow-y: auto; padding: 24px 32px; padding-bottom: calc(var(--player-h) + 24px); }
+
+    /* DIR LIST */
+    .dir-list { display: flex; flex-direction: column; gap: 1px; }
+    .dir-item { display: flex; align-items: center; gap: 12px; padding: 9px 12px; cursor: pointer; border-radius: 4px; transition: background 0.1s; font-size: 13px; }
+    .dir-item:hover { background: var(--surface); }
+    .dir-item.playing { color: var(--accent); font-weight: 500; }
+    .dir-icon { color: var(--text-muted); flex-shrink: 0; font-size: 13px; }
+    .dir-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dir-meta { color: var(--text-muted); font-size: 12px; flex-shrink: 0; }
+    .dir-add-btn { opacity: 0; background: none; border: 1px solid var(--border); color: var(--text-muted); cursor: pointer; padding: 1px 8px; font-size: 16px; line-height: 1.4; border-radius: 3px; transition: all 0.1s; flex-shrink: 0; }
+    .dir-item:hover .dir-add-btn { opacity: 1; }
+    .dir-add-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+    /* ARTIST VIEW */
+    .index-section { margin-bottom: 24px; }
+    .index-letter { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600; color: var(--accent); margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+
+    /* ALBUM GRID */
+    .album-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 20px; }
+    .album-card { cursor: pointer; transition: all 0.15s; }
+    .album-cover { width: 100%; aspect-ratio: 1; background: var(--accent-light); margin-bottom: 10px; overflow: hidden; position: relative; }
+    .album-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .album-cover-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 36px; }
+    .album-play-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.28); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.15s; }
+    .album-card:hover .album-play-overlay { opacity: 1; }
+    .play-btn-overlay { width: 44px; height: 44px; border-radius: 50%; background: white; display: flex; align-items: center; justify-content: center; font-size: 16px; color: var(--text); padding-left: 3px; }
+    .album-title { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .album-subtitle { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    /* ALBUM DETAIL */
+    .album-header { display: flex; gap: 24px; margin-bottom: 28px; align-items: flex-end; }
+    .album-header-cover { width: 160px; height: 160px; flex-shrink: 0; background: var(--accent-light); overflow: hidden; }
+    .album-header-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .album-header-cover-ph { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 48px; }
+    .album-header-info { flex: 1; }
+    .album-header-type { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 8px; }
+    .album-header-title { font-family: 'Cormorant Garamond', serif; font-size: 32px; font-weight: 600; line-height: 1.1; margin-bottom: 6px; }
+    .album-header-artist { font-size: 14px; color: var(--text-muted); margin-bottom: 16px; cursor: pointer; }
+    .album-header-artist:hover { color: var(--accent); }
+    .album-actions { display: flex; gap: 10px; }
+    .btn-play { background: var(--text); color: white; border: none; padding: 9px 20px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; border-radius: 2px; transition: background 0.15s; }
+    .btn-play:hover { background: var(--accent); }
+    .btn-queue { background: none; color: var(--text); border: 1px solid var(--border); padding: 9px 16px; font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; border-radius: 2px; transition: all 0.15s; }
+    .btn-queue:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* TRACK LIST */
+    .track-list-header { display: grid; grid-template-columns: 36px 1fr 140px 56px 32px; gap: 8px; padding: 0 12px 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+    .track-item { display: grid; grid-template-columns: 36px 1fr 140px 56px 32px; gap: 8px; padding: 8px 12px; border-radius: 4px; cursor: pointer; align-items: center; transition: background 0.1s; font-size: 13px; }
+    .track-item:hover { background: var(--surface); }
+    .track-item.playing { color: var(--accent); }
+    .track-num { color: var(--text-muted); font-size: 12px; text-align: center; }
+    .track-item.playing .track-num::after { content: '♪'; }
+    .track-item.playing .track-num-val { display: none; }
+    .track-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .track-artist { color: var(--text-muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .track-duration { color: var(--text-muted); font-size: 12px; }
+    .track-add-btn { opacity: 0; background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 18px; line-height: 1; border-radius: 3px; transition: all 0.1s; justify-self: center; }
+    .track-item:hover .track-add-btn { opacity: 1; }
+    .track-add-btn:hover { color: var(--accent); }
+
+    /* PLAYER */
+    .player { position: fixed; bottom: 0; left: 0; right: 0; height: var(--player-h); background: var(--surface); border-top: 1px solid var(--border); display: flex; align-items: center; padding: 0 24px; gap: 20px; z-index: 100; }
+    .player-track { display: flex; align-items: center; gap: 12px; width: 240px; flex-shrink: 0; overflow: hidden; }
+    .player-cover { width: 44px; height: 44px; background: var(--accent-light); flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .player-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .player-info { overflow: hidden; }
+    .player-title { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .player-artist { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .player-controls { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    .player-buttons { display: flex; align-items: center; gap: 16px; }
+    .ctrl-btn { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 15px; padding: 4px; transition: color 0.1s; line-height: 1; }
+    .ctrl-btn:hover { color: var(--text); }
+    .ctrl-btn.active { color: var(--accent); }
+    .play-pause-btn { width: 36px; height: 36px; border-radius: 50%; background: var(--text); border: none; cursor: pointer; color: white; font-size: 13px; display: flex; align-items: center; justify-content: center; transition: background 0.15s; padding-left: 2px; }
+    .play-pause-btn.paused { padding-left: 3px; }
+    .play-pause-btn:hover { background: var(--accent); }
+    .progress-bar { display: flex; align-items: center; gap: 8px; width: 100%; max-width: 480px; }
+    .progress-time { font-size: 11px; color: var(--text-muted); width: 36px; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+    .progress-time:last-child { text-align: right; }
+    .progress-track { flex: 1; height: 3px; background: var(--border); border-radius: 2px; cursor: pointer; position: relative; }
+    .progress-track:hover .progress-fill { background: var(--accent); }
+    .progress-fill { height: 100%; background: var(--text); border-radius: 2px; pointer-events: none; transition: width 0.1s linear; }
+    .player-right { width: 160px; display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-shrink: 0; }
+    .queue-toggle { background: none; border: 1px solid var(--border); cursor: pointer; color: var(--text-muted); font-size: 12px; padding: 5px 10px; border-radius: 3px; transition: all 0.1s; font-family: 'DM Sans', sans-serif; white-space: nowrap; }
+    .queue-toggle:hover, .queue-toggle.active { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+    /* QUEUE PANEL */
+    .queue-panel { position: fixed; bottom: var(--player-h); right: 0; width: 300px; max-height: 55vh; background: var(--surface); border: 1px solid var(--border); border-bottom: none; display: flex; flex-direction: column; z-index: 99; box-shadow: -4px 0 20px rgba(0,0,0,0.06); }
+    .queue-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .queue-title { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; }
+    .queue-clear { font-size: 11px; color: var(--text-muted); background: none; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+    .queue-clear:hover { color: var(--accent); }
+    .queue-list { overflow-y: auto; flex: 1; }
+    .queue-item { display: flex; align-items: center; gap: 10px; padding: 9px 16px; font-size: 12px; cursor: pointer; transition: background 0.1s; }
+    .queue-item:hover { background: var(--bg); }
+    .queue-item.active { color: var(--accent); }
+    .queue-item-num { color: var(--text-muted); font-size: 11px; width: 16px; flex-shrink: 0; text-align: right; }
+    .queue-item-info { flex: 1; overflow: hidden; }
+    .queue-item-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+    .queue-item-artist { color: var(--text-muted); font-size: 11px; }
+    .queue-item-dur { color: var(--text-muted); font-size: 11px; flex-shrink: 0; }
+
+    /* MISC */
+    .loading { display: flex; align-items: center; justify-content: center; padding: 80px; color: var(--text-muted); font-size: 13px; gap: 8px; }
+    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 20px; color: var(--text-muted); gap: 8px; }
+    .empty-icon { font-size: 36px; margin-bottom: 4px; }
+    .empty-title { font-size: 15px; font-family: 'Cormorant Garamond', serif; }
+    .empty-sub { font-size: 13px; }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- LOGIN -->
+  <div v-if="!loggedIn" class="login">
+    <div class="login-card">
+      <div class="login-title">Attic</div>
+      <div class="login-subtitle">Connect to your Subsonic server</div>
+      <div class="field">
+        <label for="server">Server URL</label>
+        <input id="server" v-model="loginForm.server" placeholder="https://gonic.example.com" title="Subsonic server URL" @keyup.enter="login" />
+      </div>
+      <div class="field">
+        <label for="username">Username</label>
+        <input id="username" v-model="loginForm.username" autocomplete="username" placeholder="username" title="Username for server" @keyup.enter="login" />
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" v-model="loginForm.password" type="password" autocomplete="current-password" placeholder="password" title="Password for server" @keyup.enter="login" />
+      </div>
+      <button class="btn-primary" @click="login" :disabled="logging">
+        {{ logging ? 'Connecting…' : 'Connect' }}
+      </button>
+      <div v-if="loginError" class="error-msg">{{ loginError }}</div>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <div v-else class="app">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div class="app-name">Attic</div>
+        <div class="server-name">{{ config.server }}</div>
+      </div>
+      <nav class="nav">
+        <div class="nav-section">
+          <div class="nav-label">Library</div>
+          <div class="nav-item" :class="{active: view === 'folders'}" @click="setView('folders')">
+            <span class="nav-icon">📁</span> Folders
+          </div>
+          <div class="nav-item" :class="{active: view === 'artists' || view === 'artist-detail'}" @click="setView('artists')">
+            <span class="nav-icon">🎤</span> Artists
+          </div>
+          <div class="nav-item" :class="{active: view === 'albums' || view === 'album-detail'}" @click="setView('albums')">
+            <span class="nav-icon">💿</span> Albums
+          </div>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <button class="logout-btn" @click="logout">Sign out</button>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+
+      <!-- FOLDERS -->
+      <template v-if="view === 'folders'">
+        <div class="content-header">
+          <div class="breadcrumb" v-if="folderPath.length">
+            <span class="breadcrumb-item" @click="goToFolderRoot">Library</span>
+            <template v-for="(crumb, i) in folderPath" :key="crumb.id">
+              <span class="breadcrumb-sep">›</span>
+              <span class="breadcrumb-item" @click="goToBreadcrumb(i)">{{ crumb.name }}</span>
+            </template>
+          </div>
+          <div class="content-title">{{ folderPath.length ? folderPath[folderPath.length-1].name : 'Library' }}</div>
+        </div>
+        <div class="content-scroll">
+          <div v-if="loading" class="loading">Loading…</div>
+          <div v-else-if="!currentDirItems.length" class="empty-state">
+            <div class="empty-icon">📂</div>
+            <div class="empty-title">Empty folder</div>
+          </div>
+          <div v-else class="dir-list">
+            <div
+              v-for="item in currentDirItems" :key="item.id"
+              class="dir-item"
+              :class="{playing: currentTrack && currentTrack.id === item.id}"
+              @click="handleDirItem(item)"
+            >
+              <span class="dir-icon">{{ item.isDir ? '📁' : '🎵' }}</span>
+              <span class="dir-name">{{ item.title || item.name }}</span>
+              <span class="dir-meta" v-if="!item.isDir">{{ fmt(item.duration) }}</span>
+              <button v-if="!item.isDir" class="dir-add-btn" @click.stop="addToQueue(item)" title="Add to queue">+</button>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- ARTISTS -->
+      <template v-else-if="view === 'artists'">
+        <div class="content-header">
+          <div class="content-title">Artists</div>
+        </div>
+        <div class="content-scroll">
+          <div v-if="loading" class="loading">Loading…</div>
+          <div v-else>
+            <div v-for="group in artistIndex" :key="group.name" class="index-section">
+              <div class="index-letter">{{ group.name }}</div>
+              <div class="dir-list">
+                <div
+                  v-for="artist in group.artist" :key="artist.id"
+                  class="dir-item"
+                  @click="openArtist(artist)"
+                >
+                  <span class="dir-icon">🎤</span>
+                  <span class="dir-name">{{ artist.name }}</span>
+                  <span class="dir-meta" v-if="artist.albumCount">{{ artist.albumCount }} album{{ artist.albumCount !== 1 ? 's' : '' }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- ARTIST DETAIL -->
+      <template v-else-if="view === 'artist-detail'">
+        <div class="content-header">
+          <div class="breadcrumb">
+            <span class="breadcrumb-item" @click="setView('artists')">Artists</span>
+            <span class="breadcrumb-sep">›</span>
+            <span>{{ currentArtist?.name }}</span>
+          </div>
+          <div class="content-title">{{ currentArtist?.name }}</div>
+        </div>
+        <div class="content-scroll">
+          <div v-if="loading" class="loading">Loading…</div>
+          <div v-else class="album-grid">
+            <div v-for="album in artistAlbums" :key="album.id" class="album-card" @click="openAlbum(album)">
+              <div class="album-cover">
+                <img v-if="album.coverArt" :src="coverUrl(album.coverArt)" :alt="album.name" :title="album.name" @error="onImageError" />
+                <div class="album-cover-placeholder" v-else>💿</div>
+                <div class="album-play-overlay">
+                  <div class="play-btn-overlay" @click.stop="playAlbumById(album)">▶</div>
+                </div>
+              </div>
+              <div class="album-title">{{ album.name }}</div>
+              <div class="album-subtitle">{{ album.year || '' }}</div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- ALBUM DETAIL -->
+      <template v-else-if="view === 'album-detail'">
+        <div class="content-header">
+          <div class="breadcrumb">
+            <template v-if="currentArtist">
+              <span class="breadcrumb-item" @click="setView('artists')">Artists</span>
+              <span class="breadcrumb-sep">›</span>
+              <span class="breadcrumb-item" @click="view = 'artist-detail'">{{ currentArtist.name }}</span>
+              <span class="breadcrumb-sep">›</span>
+            </template>
+            <template v-else>
+              <span class="breadcrumb-item" @click="setView('albums')">Albums</span>
+              <span class="breadcrumb-sep">›</span>
+            </template>
+            <span>{{ currentAlbum?.name }}</span>
+          </div>
+          <div class="content-title">{{ currentAlbum?.name }}</div>
+        </div>
+        <div class="content-scroll">
+          <div v-if="loading" class="loading">Loading…</div>
+          <div v-else>
+            <div class="album-header">
+              <div class="album-header-cover">
+                <img v-if="currentAlbum?.coverArt" :src="coverUrl(currentAlbum.coverArt)" :alt="currentAlbum?.name || 'cover'" :title="currentAlbum?.name || 'cover'" @error="onImageError" />
+                <div class="album-cover-placeholder" v-else>💿</div>
+              </div>
+              <div class="album-header-info">
+                <div class="album-header-type">Album{{ currentAlbum?.year ? ' · ' + currentAlbum.year : '' }}</div>
+                <div class="album-header-title">{{ currentAlbum?.name }}</div>
+                <div class="album-header-artist" @click="currentArtist ? view = 'artist-detail' : null">{{ currentAlbum?.artist }}</div>
+                <div class="album-actions">
+                  <button class="btn-play" @click="playAlbumTracks">▶ Play</button>
+                  <button class="btn-queue" @click="queueAlbumTracks">+ Queue</button>
+                </div>
+              </div>
+            </div>
+            <div class="track-list-header">
+              <span>#</span><span>Title</span><span>Artist</span><span>Time</span><span></span>
+            </div>
+            <div
+              v-for="(track, i) in albumTracks" :key="track.id"
+              class="track-item"
+              :class="{playing: currentTrack && currentTrack.id === track.id}"
+              @click="playTrack(track, albumTracks, i)"
+            >
+              <span class="track-num">
+                <span class="track-num-val">{{ track.track || i+1 }}</span>
+              </span>
+              <span class="track-title">{{ track.title }}</span>
+              <span class="track-artist">{{ track.artist }}</span>
+              <span class="track-duration">{{ fmt(track.duration) }}</span>
+              <button class="track-add-btn" @click.stop="addToQueue(track)" title="Add to queue">+</button>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- ALL ALBUMS -->
+      <template v-else-if="view === 'albums'">
+        <div class="content-header">
+          <div class="content-title">Albums</div>
+        </div>
+        <div class="content-scroll">
+          <div v-if="loading" class="loading">Loading…</div>
+          <div v-else-if="!allAlbums.length" class="empty-state">
+            <div class="empty-icon">💿</div>
+            <div class="empty-title">No albums found</div>
+          </div>
+          <div v-else class="album-grid">
+            <div v-for="album in allAlbums" :key="album.id" class="album-card" @click="openAlbumFromList(album)">
+              <div class="album-cover">
+                <img v-if="album.coverArt" :src="coverUrl(album.coverArt)" :alt="album.name" :title="album.name" @error="onImageError" />
+                <div class="album-cover-placeholder" v-else>💿</div>
+                <div class="album-play-overlay">
+                  <div class="play-btn-overlay" @click.stop="playAlbumById(album)">▶</div>
+                </div>
+              </div>
+              <div class="album-title">{{ album.name }}</div>
+              <div class="album-subtitle">{{ album.artist }}</div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+    </div><!-- /content -->
+
+    <!-- QUEUE PANEL -->
+    <div class="queue-panel" v-if="showQueue && queue.length">
+      <div class="queue-header">
+        <span class="queue-title">Queue ({{ queue.length }})</span>
+        <button class="queue-clear" @click="clearQueue">Clear</button>
+      </div>
+      <div class="queue-list">
+        <div
+          v-for="(track, i) in queue" :key="i"
+          class="queue-item"
+          :class="{active: i === currentIndex}"
+          @click="jumpToQueue(i)"
+        >
+          <span class="queue-item-num">{{ i+1 }}</span>
+          <div class="queue-item-info">
+            <div class="queue-item-title">{{ track.title }}</div>
+            <div class="queue-item-artist">{{ track.artist }}</div>
+          </div>
+          <span class="queue-item-dur">{{ fmt(track.duration) }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PLAYER -->
+    <div class="player">
+      <div class="player-track">
+        <div class="player-cover">
+          <img v-if="currentTrack?.coverArt" :src="coverUrl(currentTrack.coverArt)" :alt="currentTrack?.title || 'cover'" :title="currentTrack?.title || 'cover'" @error="onImageError" />
+          <span v-else>🎵</span>
+        </div>
+        <div class="player-info">
+          <div class="player-title">{{ currentTrack?.title || '—' }}</div>
+          <div class="player-artist">{{ currentTrack?.artist || '' }}</div>
+        </div>
+      </div>
+
+      <div class="player-controls">
+        <div class="player-buttons">
+          <button class="ctrl-btn" :class="{active: shuffle}" @click="shuffle = !shuffle" title="Shuffle">⇄</button>
+          <button class="ctrl-btn" @click="prevTrack" title="Previous">⏮</button>
+          <button class="play-pause-btn" :class="{paused: !isPlaying}" @click="togglePlay">
+            {{ isPlaying ? '⏸' : '▶' }}
+          </button>
+          <button class="ctrl-btn" @click="nextTrack" title="Next">⏭</button>
+          <button class="ctrl-btn" :class="{active: repeat}" @click="repeat = !repeat" title="Repeat">↻</button>
+        </div>
+        <div class="progress-bar">
+          <span class="progress-time">{{ fmt(currentTime) }}</span>
+          <div class="progress-track" @click="seek">
+            <div class="progress-fill" :style="{width: progressPct + '%'}"></div>
+          </div>
+          <span class="progress-time">{{ fmt(duration) }}</span>
+        </div>
+      </div>
+
+      <div class="player-right">
+        <button class="queue-toggle" :class="{active: showQueue}" @click="showQueue = !showQueue">
+          Queue{{ queue.length ? ` (${queue.length})` : '' }}
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /app -->
+</div><!-- /#app -->
+
+<script>
+const { createApp, ref, computed, reactive, onMounted } = Vue;
+
+createApp({
+  setup() {
+    // ── CONFIG & AUTH ─────────────────────────────────────
+    const loggedIn = ref(false);
+    const logging  = ref(false);
+    const loginError = ref('');
+    const loginForm = reactive({ server: '', username: '', password: '' });
+    const config    = reactive({ server: '', username: '', password: '' });
+
+    function hexEncode(s) {
+      return Array.from(s).map(c => c.charCodeAt(0).toString(16).padStart(2,'0')).join('');
+    }
+
+    function buildUrl(endpoint, params = {}) {
+      const base = config.server.replace(/\/$/, '');
+      const auth = `u=${encodeURIComponent(config.username)}&p=enc:${hexEncode(config.password)}&v=1.16.1&c=atticweb&f=json`;
+      const extra = Object.entries(params).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+      return `${base}/rest/${endpoint}?${auth}${extra ? '&'+extra : ''}`;
+    }
+
+    function streamUrl(id) { return buildUrl('stream', { id, format: 'raw' }); }
+    function coverUrl(id, size = 200) { return buildUrl('getCoverArt', { id, size }); }
+
+    async function api(endpoint, params = {}) {
+      const res  = await fetch(buildUrl(endpoint, params));
+      const json = await res.json();
+      const data = json['subsonic-response'];
+      if (data.status !== 'ok') throw new Error(data.error?.message || 'API error');
+      return data;
+    }
+
+    function ensureArray(val) {
+      if (!val) return [];
+      return Array.isArray(val) ? val : [val];
+    }
+
+    async function login() {
+      loginError.value = '';
+      logging.value = true;
+      try {
+        Object.assign(config, {
+          server:   loginForm.server.replace(/\/$/, ''),
+          username: loginForm.username,
+          password: loginForm.password,
+        });
+        await api('ping');
+        localStorage.setItem('attic_cfg', JSON.stringify({ ...config }));
+        loggedIn.value = true;
+        loadView();
+      } catch(e) {
+        loginError.value = 'Could not connect — check URL and credentials.';
+      } finally {
+        logging.value = false;
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('attic_cfg');
+      loggedIn.value = false;
+      Object.assign(loginForm, { server:'', username:'', password:'' });
+    }
+
+    // ── VIEW STATE ────────────────────────────────────────
+    const view    = ref('folders');
+    const loading = ref(false);
+
+    // folders
+    const folderPath     = ref([]);
+    const currentDirItems = ref([]);
+
+    // artists
+    const artistIndex  = ref([]);
+    const currentArtist = ref(null);
+    const artistAlbums  = ref([]);
+
+    // album detail
+    const currentAlbum = ref(null);
+    const albumTracks  = ref([]);
+
+    // all albums
+    const allAlbums = ref([]);
+
+    async function setView(v) {
+      view.value = v;
+      await loadView();
+    }
+
+    async function loadView() {
+      loading.value = true;
+      try {
+        if      (view.value === 'folders') await loadFolderRoot();
+        else if (view.value === 'artists') await loadArtists();
+        else if (view.value === 'albums')  await loadAllAlbums();
+      } finally {
+        loading.value = false;
+      }
+    }
+
+    // ── FOLDER BROWSER ────────────────────────────────────
+    async function loadFolderRoot() {
+      const data = await api('getIndexes');
+      const indexes = ensureArray(data.indexes?.index);
+      const items = [];
+      for (const idx of indexes) {
+        for (const a of ensureArray(idx.artist)) {
+          items.push({ id: a.id, title: a.name, name: a.name, isDir: true });
+        }
+      }
+      currentDirItems.value = items;
+      folderPath.value = [];
+    }
+
+    async function loadDirectory(id) {
+      loading.value = true;
+      try {
+        const data = await api('getMusicDirectory', { id });
+        currentDirItems.value = ensureArray(data.directory?.child);
+      } finally {
+        loading.value = false;
+      }
+    }
+
+    async function handleDirItem(item) {
+      if (item.isDir) {
+        folderPath.value.push({ id: item.id, name: item.title || item.name });
+        await loadDirectory(item.id);
+      } else {
+        const songs = currentDirItems.value.filter(i => !i.isDir);
+        const idx   = songs.findIndex(s => s.id === item.id);
+        playTrack(item, songs, idx >= 0 ? idx : 0);
+      }
+    }
+
+    async function goToFolderRoot() {
+      folderPath.value = [];
+      loading.value = true;
+      try { await loadFolderRoot(); } finally { loading.value = false; }
+    }
+
+    async function goToBreadcrumb(index) {
+      const crumb = folderPath.value[index];
+      folderPath.value = folderPath.value.slice(0, index + 1);
+      await loadDirectory(crumb.id);
+    }
+
+    // ── ARTISTS ───────────────────────────────────────────
+    async function loadArtists() {
+      const data = await api('getArtists');
+      artistIndex.value = ensureArray(data.artists?.index).map(g => ({
+        name:   g.name,
+        artist: ensureArray(g.artist),
+      }));
+    }
+
+    async function openArtist(artist) {
+      currentArtist.value = artist;
+      view.value = 'artist-detail';
+      loading.value = true;
+      try {
+        const data = await api('getArtist', { id: artist.id });
+        artistAlbums.value = ensureArray(data.artist?.album);
+      } finally {
+        loading.value = false;
+      }
+    }
+
+    // ── ALBUMS ────────────────────────────────────────────
+    async function loadAllAlbums() {
+      const data = await api('getAlbumList2', { type: 'alphabeticalByName', size: 500 });
+      allAlbums.value = ensureArray(data.albumList2?.album);
+    }
+
+    async function openAlbum(album) {
+      currentAlbum.value = album;
+      view.value = 'album-detail';
+      loading.value = true;
+      try {
+        const data = await api('getAlbum', { id: album.id });
+        albumTracks.value  = ensureArray(data.album?.song);
+        if (data.album) currentAlbum.value = { ...album, ...data.album };
+      } finally {
+        loading.value = false;
+      }
+    }
+
+    // Open from All Albums view (no artist context)
+    async function openAlbumFromList(album) {
+      currentArtist.value = null;
+      await openAlbum(album);
+    }
+
+    async function playAlbumById(album) {
+      await openAlbum(album);
+      playAlbumTracks();
+    }
+
+    function playAlbumTracks() {
+      if (!albumTracks.value.length) return;
+      queue.value = [...albumTracks.value];
+      currentIndex.value = 0;
+      playFromQueue(0);
+    }
+
+    function queueAlbumTracks() {
+      queue.value.push(...albumTracks.value);
+    }
+
+    // ── PLAYER ───────────────────────────────────────────
+    const audio = new Audio();
+    audio.preload = 'auto';
+
+    const queue        = ref([]);
+    const currentIndex = ref(-1);
+    const currentTrack = ref(null);
+    const isPlaying    = ref(false);
+    const shuffle      = ref(false);
+    const repeat       = ref(false);
+    const showQueue    = ref(false);
+    const currentTime  = ref(0);
+    const duration     = ref(0);
+
+    const progressPct = computed(() =>
+      duration.value ? (currentTime.value / duration.value) * 100 : 0
+    );
+
+    audio.addEventListener('timeupdate',     () => { currentTime.value = audio.currentTime; });
+    audio.addEventListener('durationchange', () => { duration.value = isFinite(audio.duration) ? audio.duration : 0; });
+    audio.addEventListener('play',           () => { isPlaying.value = true; });
+    audio.addEventListener('pause',          () => { isPlaying.value = false; });
+    audio.addEventListener('ended',          () => {
+      if (repeat.value) {
+        audio.currentTime = 0;
+        audio.play();
+      } else {
+        nextTrack();
+      }
+    });
+
+    function playTrack(track, trackList = null, index = 0) {
+      if (trackList) {
+        queue.value = [...trackList];
+        currentIndex.value = index;
+      }
+      currentTrack.value = track;
+      audio.src = streamUrl(track.id);
+      audio.play();
+    }
+
+    function playFromQueue(index) {
+      if (index < 0 || index >= queue.value.length) return;
+      currentIndex.value = index;
+      const track = queue.value[index];
+      currentTrack.value = track;
+      audio.src = streamUrl(track.id);
+      audio.play();
+    }
+
+    function togglePlay() {
+      if (!currentTrack.value) return;
+      if (isPlaying.value) audio.pause();
+      else audio.play();
+    }
+
+    function nextTrack() {
+      if (!queue.value.length) return;
+      if (shuffle.value) {
+        playFromQueue(Math.floor(Math.random() * queue.value.length));
+      } else {
+        const next = currentIndex.value + 1;
+        if (next < queue.value.length) playFromQueue(next);
+      }
+    }
+
+    function prevTrack() {
+      if (audio.currentTime > 3) { audio.currentTime = 0; return; }
+      const prev = currentIndex.value - 1;
+      if (prev >= 0) playFromQueue(prev);
+    }
+
+    function addToQueue(track) { queue.value.push(track); }
+    function clearQueue()      { queue.value = []; currentIndex.value = -1; }
+    function jumpToQueue(i)    { playFromQueue(i); }
+
+    function seek(event) {
+      if (!duration.value) return;
+      const rect = event.currentTarget.getBoundingClientRect();
+      audio.currentTime = ((event.clientX - rect.left) / rect.width) * duration.value;
+    }
+
+    function fmt(secs) {
+      if (!secs && secs !== 0) return '—';
+      const s = Math.floor(secs);
+      return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+    }
+
+    function onImageError(e) {
+      try { if (e && e.target) e.target.style.display = 'none'; } catch(_) {}
+    }
+
+    // ── INIT ─────────────────────────────────────────────
+    onMounted(() => {
+      const saved = localStorage.getItem('attic_cfg');
+      if (saved) {
+        try {
+          const c = JSON.parse(saved);
+          Object.assign(config, c);
+          Object.assign(loginForm, c);
+          loggedIn.value = true;
+          loadView();
+        } catch(e) {}
+      }
+    });
+
+    return {
+      loggedIn, logging, loginError, loginForm, config,
+      view, loading,
+      folderPath, currentDirItems,
+      artistIndex, currentArtist, artistAlbums,
+      currentAlbum, albumTracks,
+      allAlbums,
+      queue, currentIndex, currentTrack, isPlaying,
+      shuffle, repeat, showQueue, currentTime, duration, progressPct,
+      login, logout,
+      setView, handleDirItem, goToFolderRoot, goToBreadcrumb,
+      openArtist, openAlbum, openAlbumFromList, playAlbumById,
+      playAlbumTracks, queueAlbumTracks,
+      playTrack, togglePlay, nextTrack, prevTrack,
+      addToQueue, clearQueue, jumpToQueue, seek,
+      onImageError,
+      fmt, coverUrl,
+    };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>

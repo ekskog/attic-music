@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: attic-music
+  namespace: webapps
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: attic
+  template:
+    metadata:
+      labels:
+        app: attic
+    spec:
+      containers:
+        - name: attic
+          image: <your-registry>/attic:latest
+          ports:
+            - containerPort: 80
