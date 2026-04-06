@@ -19,7 +19,6 @@
         </div>
       </div>
 
-      <!-- TURNSTILE WIDGET -->
       <div class="mt-6" id="turnstile-container"></div>
 
       <button
@@ -41,7 +40,7 @@ import { useRouter } from 'vue-router'
 import { useConfigStore } from '../stores/config'
 import { ping } from '../api/subsonic'
 
-const TURNSTILE_SITE_KEY  = '0x4AAAAAAC1Tg9yFuV4XukU0'
+const TURNSTILE_SITE_KEY   = 'your-site-key-here'
 const TURNSTILE_WORKER_URL = 'https://attic-turnstile.ekflare.workers.dev'
 
 const config  = useConfigStore()
@@ -61,12 +60,11 @@ onMounted(() => {
   form.username = config.username
   form.password = config.password
 
-  // Wait for turnstile to be available
   const render = () => {
     if (window.turnstile) {
       window.turnstile.render('#turnstile-container', {
-        sitekey: TURNSTILE_SITE_KEY,
-        callback:          (token) => { turnstileToken.value = token },
+        sitekey:            TURNSTILE_SITE_KEY,
+        callback:           (token) => { turnstileToken.value = token },
         'expired-callback': ()      => { turnstileToken.value = '' },
         'error-callback':   ()      => { turnstileToken.value = '' },
       })
@@ -76,8 +74,6 @@ onMounted(() => {
   }
   render()
 })
-
-import { reactive, ref, onMounted, onUnmounted } from 'vue'
 
 onUnmounted(() => {
   if (window.turnstile) {
@@ -93,7 +89,6 @@ async function login() {
   }
   logging.value = true
   try {
-    // Verify token with Worker
     const res  = await fetch(TURNSTILE_WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -106,8 +101,6 @@ async function login() {
       turnstileToken.value = ''
       return
     }
-
-    // Proceed with login
     config.server   = form.server.replace(/\/$/, '')
     config.username = form.username
     config.password = form.password
