@@ -36,7 +36,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useConfigStore } from '../stores/config'
 import { ping } from '../api/subsonic'
