@@ -29,8 +29,8 @@ spec:
               cat > /config/config.json <<EOF
               {
                 "server": "https://gonic.ekskog.net",
-                "username": "admin",
-                "lastfmUser": "your-lastfm-username",
+                "username": "lucarv",
+                "lastfmUser": "katstoopid",
                 "lastfmKey": "$LASTFM_API_KEY"
               }
               EOF
