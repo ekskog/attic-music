@@ -19,7 +19,13 @@
         </div>
       </div>
 
-      <div class="mt-6" id="turnstile-container"></div>
+      <Turnstile
+        :sitekey="TURNSTILE_SITE_KEY"
+        class="mt-6"
+        @verified="turnstileToken = $event"
+        @expired="turnstileToken = ''"
+        @error="turnstileToken = ''"
+      />
 
       <button
         class="mt-4 w-full bg-stone-900 text-white text-sm font-medium tracking-wide py-3 hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -35,10 +41,11 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted, onUnmounted } from 'vue'
+import { reactive, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useConfigStore } from '../stores/config'
 import { ping } from '../api/subsonic'
+import Turnstile from '../components/Turnstile.vue'
 
 const TURNSTILE_SITE_KEY   = '0x4AAAAAAC1Tg9yFuV4XukU0'
 const TURNSTILE_WORKER_URL = 'https://attic-turnstile.ekflare.workers.dev'
@@ -59,26 +66,6 @@ onMounted(() => {
   form.server   = config.server
   form.username = config.username
   form.password = config.password
-
-  const render = () => {
-    if (window.turnstile) {
-      window.turnstile.render('#turnstile-container', {
-        sitekey:            TURNSTILE_SITE_KEY,
-        callback:           (token) => { turnstileToken.value = token },
-        'expired-callback': ()      => { turnstileToken.value = '' },
-        'error-callback':   ()      => { turnstileToken.value = '' },
-      })
-    } else {
-      setTimeout(render, 100)
-    }
-  }
-  render()
-})
-
-onUnmounted(() => {
-  if (window.turnstile) {
-    window.turnstile.remove('#turnstile-container')
-  }
 })
 
 async function login() {
@@ -97,7 +84,6 @@ async function login() {
     const data = await res.json()
     if (!data.success) {
       error.value = 'Security check failed. Please try again.'
-      window.turnstile.reset('#turnstile-container')
       turnstileToken.value = ''
       return
     }
