@@ -40,7 +40,7 @@ import { useRouter } from 'vue-router'
 import { useConfigStore } from '../stores/config'
 import { ping } from '../api/subsonic'
 
-const TURNSTILE_SITE_KEY   = 'your-site-key-here'
+const TURNSTILE_SITE_KEY   = '0x4AAAAAAC1Tg9yFuV4XukU0'
 const TURNSTILE_WORKER_URL = 'https://attic-turnstile.ekflare.workers.dev'
 
 const config  = useConfigStore()
