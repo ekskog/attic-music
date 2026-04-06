@@ -19,18 +19,10 @@
         </div>
       </div>
 
-      <Turnstile
-        :sitekey="TURNSTILE_SITE_KEY"
-        class="mt-6"
-        @verified="turnstileToken = $event"
-        @expired="turnstileToken = ''"
-        @error="turnstileToken = ''"
-      />
-
       <button
-        class="mt-4 w-full bg-stone-900 text-white text-sm font-medium tracking-wide py-3 hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        class="mt-6 w-full bg-stone-900 text-white text-sm font-medium tracking-wide py-3 hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         @click="login"
-        :disabled="logging || !turnstileToken"
+        :disabled="logging"
       >
         {{ logging ? 'Connecting…' : 'Connect' }}
       </button>
@@ -45,16 +37,12 @@ import { reactive, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useConfigStore } from '../stores/config'
 import { ping } from '../api/subsonic'
-import Turnstile from '../components/Turnstile.vue'
 
-const TURNSTILE_SITE_KEY   = '0x4AAAAAAC1Tg9yFuV4XukU0'
-const TURNSTILE_WORKER_URL = 'https://attic-turnstile.ekflare.workers.dev'
+const config = useConfigStore()
+const router = useRouter()
 
-const config  = useConfigStore()
-const router  = useRouter()
 const logging = ref(false)
 const error   = ref('')
-const turnstileToken = ref('')
 
 const form = reactive({
   server:   '',
@@ -63,30 +51,16 @@ const form = reactive({
 })
 
 onMounted(() => {
+  // Pre-fill from config store (loaded from config.json by App.vue)
   form.server   = config.server
   form.username = config.username
   form.password = config.password
 })
 
 async function login() {
-  error.value = ''
-  if (!turnstileToken.value) {
-    error.value = 'Please complete the security check.'
-    return
-  }
+  error.value   = ''
   logging.value = true
   try {
-    const res  = await fetch(TURNSTILE_WORKER_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: turnstileToken.value })
-    })
-    const data = await res.json()
-    if (!data.success) {
-      error.value = 'Security check failed. Please try again.'
-      turnstileToken.value = ''
-      return
-    }
     config.server   = form.server.replace(/\/$/, '')
     config.username = form.username
     config.password = form.password
@@ -103,6 +77,7 @@ async function login() {
 
 <style scoped>
 @reference "../style.css";
+
 .input {
   @apply w-full border border-stone-200 bg-stone-50 px-3 py-2.5 text-sm text-stone-900 outline-none focus:border-amber-700 transition-colors;
 }
