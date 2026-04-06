@@ -61,20 +61,28 @@ onMounted(() => {
   form.username = config.username
   form.password = config.password
 
-  // Load Turnstile script
-  const script = document.createElement('script')
-  script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js'
-  script.async = true
-  script.defer = true
-  script.onload = () => {
-    window.turnstile.render('#turnstile-container', {
-      sitekey: TURNSTILE_SITE_KEY,
-      callback: (token) => { turnstileToken.value = token },
-      'expired-callback': () => { turnstileToken.value = '' },
-      'error-callback':   () => { turnstileToken.value = '' },
-    })
+  // Wait for turnstile to be available
+  const render = () => {
+    if (window.turnstile) {
+      window.turnstile.render('#turnstile-container', {
+        sitekey: TURNSTILE_SITE_KEY,
+        callback:          (token) => { turnstileToken.value = token },
+        'expired-callback': ()      => { turnstileToken.value = '' },
+        'error-callback':   ()      => { turnstileToken.value = '' },
+      })
+    } else {
+      setTimeout(render, 100)
+    }
   }
-  document.head.appendChild(script)
+  render()
+})
+
+import { reactive, ref, onMounted, onUnmounted } from 'vue'
+
+onUnmounted(() => {
+  if (window.turnstile) {
+    window.turnstile.remove('#turnstile-container')
+  }
 })
 
 async function login() {
