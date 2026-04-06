@@ -13,17 +13,26 @@
             <div class="font-serif text-xl font-semibold text-amber-700 border-b border-stone-200 pb-1 mb-2">
               {{ group.name }}
             </div>
-            <div class="flex flex-col gap-px">
+            <div class="grid gap-5" style="grid-template-columns: repeat(auto-fill, minmax(168px, 1fr))">
               <div
                 v-for="artist in group.artist" :key="artist.id"
-                class="flex items-center gap-3 px-3 py-2.5 rounded cursor-pointer hover:bg-white transition-colors text-sm group"
+                class="cursor-pointer group"
                 @click="openArtist(artist)"
               >
-                <span class="text-stone-400">🎤</span>
-                <span class="flex-1 truncate">{{ artist.name }}</span>
-                <span v-if="artist.albumCount" class="text-xs text-stone-400">
+                <div class="aspect-square bg-amber-50 mb-2.5 overflow-hidden relative">
+                  <img
+                    v-if="artist.coverArt"
+                    :src="coverUrl(artist.coverArt)"
+                    :alt="artist.name"
+                    class="w-full h-full object-cover"
+                    @error="onImgError"
+                  />
+                  <div v-else class="w-full h-full flex items-center justify-center text-3xl">🎤</div>
+                </div>
+                <div class="text-sm font-medium truncate text-center">{{ artist.name }}</div>
+                <div v-if="artist.albumCount" class="text-xs text-stone-400 mt-0.5 text-center">
                   {{ artist.albumCount }} album{{ artist.albumCount !== 1 ? 's' : '' }}
-                </span>
+                </div>
               </div>
             </div>
           </div>
@@ -141,6 +150,8 @@ async function loadArtists() {
   try { artistIndex.value = await getArtists() }
   finally { loading.value = false }
 }
+
+
 
 async function openArtist(artist) {
   currentArtist.value = artist
