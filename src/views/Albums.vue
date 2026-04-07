@@ -29,7 +29,9 @@
               </div>
             </div>
             <div class="text-xs font-medium truncate leading-tight">{{ album.name }}</div>
-            <div class="text-xs text-stone-400 truncate mt-0.5">{{ album.artist }}</div>
+            <div class="text-xs text-stone-400 truncate mt-0.5">
+              <button class="text-stone-400 hover:text-amber-700" @click.stop="openArtistByName(album.artist, $event)">{{ album.artist }}</button>
+            </div>
           </div>
         </div>
       </div>
@@ -87,7 +89,7 @@
 import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePlayerStore } from '../stores/player'
-import { getAlbumList, getAlbum, coverUrl } from '../api/subsonic'
+import { getAlbumList, getAlbum, coverUrl, getArtists } from '../api/subsonic'
 import TrackItem from '../components/TrackItem.vue'
 
 const route  = useRoute()
@@ -127,6 +129,24 @@ function playAlbumTracks() {
 
 function queueAlbumTracks() {
   player.queue.push(...albumTracks.value)
+}
+
+async function openArtistByName(name, e) {
+  if (e && e.stopPropagation) e.stopPropagation()
+  try {
+    const idx = await getArtists()
+    for (const g of idx) {
+      for (const a of g.artist) {
+        if (a.name === name) {
+          router.push({ name: 'artist-detail', params: { id: a.id } })
+          return
+        }
+      }
+    }
+  } catch (err) {
+    // ignore
+  }
+  router.push({ name: 'artists' })
 }
 
 function closeAlbum() {

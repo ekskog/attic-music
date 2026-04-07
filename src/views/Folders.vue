@@ -24,16 +24,9 @@
       </div>
       <div v-else>
 
-        <!-- DIRECTORIES AS GRID -->
-        <div v-if="dirs.length" class="grid gap-3 mb-6" style="grid-template-columns: repeat(auto-fill, minmax(90px, 1fr))">
-          <div
-            v-for="item in dirs" :key="item.id"
-            class="flex flex-col items-center gap-1.5 p-3 rounded-xl cursor-pointer active:bg-stone-200 transition-colors text-center"
-            @click="handleItem(item)"
-          >
-            <span class="text-4xl">📁</span>
-            <span class="text-xs font-medium text-stone-700 line-clamp-2 leading-tight">{{ item.title || item.name }}</span>
-          </div>
+        <!-- DIRECTORIES AS EXPANDABLE LIST -->
+        <div v-if="dirs.length" class="flex flex-col gap-1 mb-6">
+          <FolderNode v-for="item in dirs" :key="item.id" :item="item" />
         </div>
 
         <!-- TRACKS AS LIST -->
@@ -61,10 +54,11 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, computed } from 'vue'
+import { ref, watch, onMounted, computed, provide } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePlayerStore } from '../stores/player'
 import { getIndexes, getDirectory } from '../api/subsonic'
+import FolderNode from '../components/FolderNode.vue'
 
 const route  = useRoute()
 const router = useRouter()
@@ -73,6 +67,11 @@ const player = usePlayerStore()
 const items       = ref([])
 const breadcrumbs = ref([])
 const loading     = ref(false)
+
+// top-level accordion controller so top-level FolderNode siblings collapse
+const topOpenChildId = ref(null)
+provide('openChildId', topOpenChildId)
+provide('setOpenChild', (id) => { topOpenChildId.value = id })
 
 const dirs   = computed(() => items.value.filter(i => i.isDir))
 const tracks = computed(() => items.value.filter(i => !i.isDir))

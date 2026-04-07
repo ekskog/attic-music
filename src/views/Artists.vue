@@ -131,12 +131,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { usePlayerStore } from '../stores/player'
 import { getArtists, getArtist, getAlbum, coverUrl } from '../api/subsonic'
 import TrackItem from '../components/TrackItem.vue'
 
 const player = usePlayerStore()
+const route = useRoute()
 
 const loading      = ref(false)
 const artistIndex  = ref([])
@@ -151,8 +153,6 @@ async function loadArtists() {
   finally { loading.value = false }
 }
 
-
-
 async function openArtist(artist) {
   currentArtist.value = artist
   currentAlbum.value  = null
@@ -160,6 +160,17 @@ async function openArtist(artist) {
   try {
     const data = await getArtist(artist.id)
     artistAlbums.value = data.albums
+  } finally { loading.value = false }
+}
+
+async function openArtistById(id) {
+  if (!id) return
+  loading.value = true
+  try {
+    const data = await getArtist(id)
+    currentArtist.value = { id, name: data.info?.name || '' }
+    artistAlbums.value = data.albums || []
+    currentAlbum.value = null
   } finally { loading.value = false }
 }
 
@@ -200,5 +211,16 @@ function onImgError(e) {
   try { if (e?.target) e.target.style.display = 'none' } catch(_) {}
 }
 
-onMounted(loadArtists)
+onMounted(async () => {
+  await loadArtists()
+  if (route.params.id) await openArtistById(route.params.id)
+})
+
+watch(() => route.params.id, (id) => {
+  if (id) openArtistById(id)
+  else {
+    currentArtist.value = null
+    currentAlbum.value = null
+  }
+})
 </script>
