@@ -23,7 +23,7 @@ function drain() {
 
 export async function getArtistImage(name) {
   return schedule(async () => {
-    const url = `https://api.deezer.com/search/artist?q=${encodeURIComponent(name)}&limit=1`
+    const url = `/deezer-api/search/artist?q=${encodeURIComponent(name)}&limit=1`
     try {
       const res    = await fetch(url)
       const json   = await res.json()

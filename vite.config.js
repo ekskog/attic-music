@@ -10,6 +10,11 @@ export default defineConfig({
         target: 'https://gonic.ekskog.net',
         changeOrigin: true,
         secure: true
+      },
+      '/deezer-api': {
+        target: 'https://api.deezer.com',
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/deezer-api/, '')
       }
     }
   },
