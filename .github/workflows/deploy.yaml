@@ -20,6 +20,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Generate config
+        env:
+          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+        run: |
+          cat > public/config.json <<EOF
+          {
+            "server": "https://gonic.ekskog.net",
+            "username": "lucarv",
+            "lastfmUser": "katstoopid",
+            "lastfmKey": "$LASTFM_API_KEY"
+          }
+          EOF
+
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:

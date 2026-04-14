@@ -107,7 +107,7 @@ async function toggle() {
 }
 
 function openDir() {
-  router.push({ name: 'folders', params: { id: props.item.id } })
+  router.push(`/albums`)
 }
 
 function playTrack(track) {

@@ -59,7 +59,24 @@
       <div v-if="showQueue && player.queue.length" class="fixed bottom-20 right-0 w-72 max-h-96 bg-white border border-stone-200 border-b-0 flex flex-col shadow-lg z-40">
         <div class="flex items-center justify-between px-4 py-3 border-b border-stone-200 flex-shrink-0">
           <span class="text-xs font-medium uppercase tracking-widest">Queue ({{ player.queue.length }})</span>
-          <button class="text-xs text-stone-400 hover:text-amber-700 transition-colors" @click="player.clearQueue()">Clear</button>
+          <div class="flex items-center gap-2">
+            <template v-if="savingPlaylist">
+              <input
+                ref="playlistNameInput"
+                v-model="playlistName"
+                class="text-xs border border-stone-200 rounded px-1.5 py-0.5 w-28 outline-none focus:border-amber-700"
+                placeholder="Playlist name…"
+                @keydown.enter="savePlaylist"
+                @keydown.esc="savingPlaylist = false"
+              />
+              <button class="text-xs text-amber-700 hover:text-amber-800 transition-colors font-medium" @click="savePlaylist">Save</button>
+              <button class="text-xs text-stone-400 hover:text-stone-600 transition-colors" @click="savingPlaylist = false">✕</button>
+            </template>
+            <template v-else>
+              <button class="text-xs text-stone-400 hover:text-amber-700 transition-colors" @click="startSavePlaylist" title="Save queue as playlist">+ Playlist</button>
+              <button class="text-xs text-stone-400 hover:text-amber-700 transition-colors" @click="player.clearQueue()">Clear</button>
+            </template>
+          </div>
         </div>
         <div class="overflow-y-auto flex-1">
           <div
@@ -91,17 +108,21 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, nextTick } from 'vue'
 import { usePlayerStore } from '../stores/player'
-import { coverUrl } from '../api/subsonic'
+import { coverUrl, createPlaylist } from '../api/subsonic'
 import MiniPlayer from './MiniPlayer.vue'
 import FullPlayer from './FullPlayer.vue'
 import BottomNav  from './BottomNav.vue'
 
-const player        = usePlayerStore()
-const showQueue     = ref(false)
+const player         = usePlayerStore()
+const showQueue      = ref(false)
 const fullPlayerOpen = ref(false)
-const progressEl    = ref(null)
+const progressEl     = ref(null)
+
+const savingPlaylist   = ref(false)
+const playlistName     = ref('')
+const playlistNameInput = ref(null)
 
 function handleSeek(event) {
   player.seek(event, progressEl.value)
@@ -109,6 +130,21 @@ function handleSeek(event) {
 
 function onImgError(e) {
   try { if (e?.target) e.target.style.display = 'none' } catch(_) {}
+}
+
+async function startSavePlaylist() {
+  savingPlaylist.value = true
+  playlistName.value   = ''
+  await nextTick()
+  playlistNameInput.value?.focus()
+}
+
+async function savePlaylist() {
+  const name = playlistName.value.trim()
+  if (!name || !player.queue.length) return
+  await createPlaylist(name, player.queue.map(t => t.id))
+  savingPlaylist.value = false
+  playlistName.value   = ''
 }
 </script>
 

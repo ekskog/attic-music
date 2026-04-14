@@ -8,8 +8,15 @@ function buildUrl(endpoint, params = {}) {
   const config = useConfigStore()
   const base   = config.server.replace(/\/$/, '')
   const auth   = `u=${encodeURIComponent(config.username)}&p=enc:${hexEncode(config.password)}&v=1.16.1&c=atticweb&f=json`
-  const extra  = Object.entries(params).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&')
-  return `${base}/rest/${endpoint}?${auth}${extra ? '&'+extra : ''}`
+  const parts  = []
+  for (const [k, v] of Object.entries(params)) {
+    if (Array.isArray(v)) {
+      for (const item of v) parts.push(`${k}=${encodeURIComponent(item)}`)
+    } else {
+      parts.push(`${k}=${encodeURIComponent(v)}`)
+    }
+  }
+  return `${base}/rest/${endpoint}?${auth}${parts.length ? '&' + parts.join('&') : ''}`
 }
 
 export function coverUrl(id, size = 200) {
@@ -81,4 +88,43 @@ export async function getAlbum(id) {
 export async function getAlbumList(size = 500) {
   const data = await request('getAlbumList2', { type: 'alphabeticalByName', size })
   return ensureArray(data.albumList2?.album)
+}
+
+export async function getNewestAlbums(size = 12) {
+  const data = await request('getAlbumList2', { type: 'newest', size })
+  return ensureArray(data.albumList2?.album)
+}
+
+export async function getPlaylists() {
+  const data = await request('getPlaylists')
+  return ensureArray(data.playlists?.playlist)
+}
+
+export async function getPlaylist(id) {
+  const data = await request('getPlaylist', { id })
+  return {
+    info:   data.playlist,
+    tracks: ensureArray(data.playlist?.entry),
+  }
+}
+
+export async function createPlaylist(name, songIds = []) {
+  return request('createPlaylist', { name, songId: songIds })
+}
+
+export async function updatePlaylist(id, { name, songIdsToAdd = [], songIndexesToRemove = [] } = {}) {
+  const params = { playlistId: id }
+  if (name)                     params.name              = name
+  if (songIdsToAdd.length)      params.songIdToAdd       = songIdsToAdd
+  if (songIndexesToRemove.length) params.songIndexToRemove = songIndexesToRemove
+  return request('updatePlaylist', params)
+}
+
+export async function deletePlaylist(id) {
+  return request('deletePlaylist', { id })
+}
+
+export async function getArtistInfo(id) {
+  const data = await request('getArtistInfo2', { id })
+  return data.artistInfo2 || {}
 }

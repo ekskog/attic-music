@@ -1,8 +1,8 @@
 <template>
   <div class="h-screen flex items-center justify-center bg-stone-50">
     <div class="w-96 bg-white border border-stone-200 p-12">
-      <h1 class="font-serif text-5xl font-semibold mb-1">Attic</h1>
-      <p class="text-stone-400 text-sm mb-8">Connect to your Subsonic server</p>
+      <h1 class="font-serif text-5xl font-semibold mb-1">attic music</h1>
+      <p class="text-stone-400 text-sm mb-8">a client for subsonic</p>
 
       <div class="space-y-4">
         <div>
