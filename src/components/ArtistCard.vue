@@ -7,7 +7,7 @@
         :alt="artist.name"
         loading="lazy"
         class="w-full h-full object-cover"
-        @error="onImgError"
+        @error="imageUrl = null"
       />
       <div v-else class="w-full h-full flex items-center justify-center font-serif text-3xl font-semibold text-stone-300 select-none">
         {{ artist.name[0]?.toUpperCase() }}
@@ -23,23 +23,11 @@
 <script setup>
 import { ref } from 'vue'
 import { coverUrl } from '../api/subsonic'
-import { getArtistImage } from '../api/deezer'
 
 const props = defineProps({ artist: Object })
 const emit  = defineEmits(['click'])
 
-// Try local Gonic cover art first (getCoverArt?id=ar-xxx)
-const imageUrl   = ref(coverUrl(props.artist.id, 200))
-const triedLocal = ref(false)
-
-async function onImgError() {
-  if (!triedLocal.value) {
-    triedLocal.value = true
-    imageUrl.value = null                              // show letter while fetching
-    const url = await getArtistImage(props.artist.name)
-    imageUrl.value = url                               // null → stays as letter
-  } else {
-    imageUrl.value = null
-  }
-}
+// artist.coverArt is populated by Gonic when a cover.jpg exists in the artist folder.
+// artist.id (e.g. ar-26) is NOT a valid getCoverArt id.
+const imageUrl = ref(props.artist.coverArt ? coverUrl(props.artist.coverArt, 200) : null)
 </script>

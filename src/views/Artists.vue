@@ -45,8 +45,7 @@
               :src="artistDetailImageUrl"
               :alt="currentArtist.name"
               class="w-full h-full object-cover"
-              @load="onArtistDetailImgLoad"
-              @error="onArtistDetailImgError"
+              @error="artistDetailImageUrl = null"
             />
             <div v-else class="w-full h-full flex items-center justify-center font-serif text-2xl font-semibold text-stone-300 select-none">
               {{ currentArtist.name?.[0]?.toUpperCase() }}
@@ -132,7 +131,6 @@
 import { ref, reactive, onMounted } from 'vue'
 import { usePlayerStore } from '../stores/player'
 import { getArtists, getArtist, getAlbum, coverUrl } from '../api/subsonic'
-import { getArtistImage } from '../api/deezer'
 import TrackItem  from '../components/TrackItem.vue'
 import ArtistCard from '../components/ArtistCard.vue'
 
@@ -172,39 +170,9 @@ async function openArtist(artist) {
   try {
     const data = await getArtist(artist.id)
     currentArtistAlbums.value = data.albums
-    // Gonic doesn't expose artist-level cover art; use the first album's coverArt as the avatar
-    const coverArtId = data.info?.coverArt || data.albums?.[0]?.coverArt || null
-    if (coverArtId) {
-      console.log(`[artist image] "${artist.name}" — using coverArt id: ${coverArtId}`)
-      artistDetailImageUrl.value = coverUrl(coverArtId, 112)
-    } else {
-      console.log(`[artist image] "${artist.name}" — no coverArt in response, fetching from Deezer…`)
-      const deezerUrl = await getArtistImage(artist.name)
-      if (deezerUrl) {
-        console.log(`[artist image] "${artist.name}" — using Deezer image`)
-      } else {
-        console.log(`[artist image] "${artist.name}" — no image found anywhere, showing initial`)
-      }
-      artistDetailImageUrl.value = deezerUrl
-    }
+    const coverArtId = data.info?.coverArt || artist.coverArt || null
+    artistDetailImageUrl.value = coverArtId ? coverUrl(coverArtId, 112) : null
   } finally { loadingArtist.value = false }
-}
-
-function onArtistDetailImgLoad() {
-  console.log(`[artist image] "${currentArtist.value?.name}" — loaded from local library`)
-}
-
-async function onArtistDetailImgError() {
-  const failedUrl = artistDetailImageUrl.value
-  console.log(`[artist image] "${currentArtist.value?.name}" — local URL failed (${failedUrl}), fetching from Deezer…`)
-  artistDetailImageUrl.value = null
-  const url = await getArtistImage(currentArtist.value?.name)
-  if (url) {
-    console.log(`[artist image] "${currentArtist.value?.name}" — using Deezer image`)
-  } else {
-    console.log(`[artist image] "${currentArtist.value?.name}" — no image found anywhere, showing initial`)
-  }
-  artistDetailImageUrl.value = url
 }
 
 async function openAlbum(album) {
