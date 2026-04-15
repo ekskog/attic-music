@@ -69,6 +69,26 @@ export async function getArtists() {
   }))
 }
 
+// Returns { artistId: coverArtId } using the first album found per artist.
+// Paginates until all albums are fetched.
+export async function getArtistCoverMap() {
+  const map = {}
+  let offset = 0
+  const size = 500
+  while (true) {
+    const data = await request('getAlbumList2', { type: 'alphabeticalByName', size, offset })
+    const albums = ensureArray(data.albumList2?.album)
+    for (const album of albums) {
+      if (album.artistId && album.coverArt && !map[album.artistId]) {
+        map[album.artistId] = album.coverArt
+      }
+    }
+    if (albums.length < size) break
+    offset += size
+  }
+  return map
+}
+
 export async function getArtist(id) {
   const data = await request('getArtist', { id })
   return {

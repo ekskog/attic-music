@@ -45,7 +45,7 @@
               :src="artistDetailImageUrl"
               :alt="currentArtist.name"
               class="w-full h-full object-cover"
-              @error="artistDetailImageUrl = null"
+              @error="onArtistDetailImgError"
             />
             <div v-else class="w-full h-full flex items-center justify-center font-serif text-2xl font-semibold text-stone-300 select-none">
               {{ currentArtist.name?.[0]?.toUpperCase() }}
@@ -130,7 +130,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { usePlayerStore } from '../stores/player'
-import { getArtists, getArtist, getAlbum, coverUrl } from '../api/subsonic'
+import { getArtists, getArtist, getAlbum, getArtistCoverMap, coverUrl } from '../api/subsonic'
 import TrackItem  from '../components/TrackItem.vue'
 import ArtistCard from '../components/ArtistCard.vue'
 
@@ -153,8 +153,16 @@ const albumTracks  = ref([])
 async function loadArtists() {
   loading.value = true
   try {
-    artistIndex.value = await getArtists()
-    for (const group of artistIndex.value) expandedGroups[group.name] = true
+    const [index, coverMap] = await Promise.all([getArtists(), getArtistCoverMap()])
+    for (const group of index) {
+      for (const artist of group.artist) {
+        if (!artist.coverArt && coverMap[artist.id]) {
+          artist.coverArt = coverMap[artist.id]
+        }
+      }
+      expandedGroups[group.name] = true
+    }
+    artistIndex.value = index
   } finally { loading.value = false }
 }
 
@@ -170,9 +178,14 @@ async function openArtist(artist) {
   try {
     const data = await getArtist(artist.id)
     currentArtistAlbums.value = data.albums
-    const coverArtId = data.info?.coverArt || artist.coverArt || null
-    artistDetailImageUrl.value = coverArtId ? coverUrl(coverArtId, 112) : null
+    const coverArtId = data.info?.coverArt || artist.coverArt || artist.id
+    artistDetailImageUrl.value = coverUrl(coverArtId, 112)
   } finally { loadingArtist.value = false }
+}
+
+function onArtistDetailImgError() {
+  console.warn(`[artist image] no image for "${currentArtist.value?.name}" (url: ${artistDetailImageUrl.value})`)
+  artistDetailImageUrl.value = null
 }
 
 async function openAlbum(album) {

@@ -44,6 +44,7 @@ src/
     SideBar.vue      # desktop sidebar (nav + last.fm scrobbles)
     FolderNode.vue   # expandable folder tree node
     TrackItem.vue    # track list item
+    ArtistCard.vue   # artist grid card with avatar
   App.vue           # root layout + auth check
   main.js           # entry point
   style.css         # Tailwind import + root styles
@@ -62,6 +63,14 @@ src/
 - Auth uses hex-encoded password per Subsonic spec; client ID is `atticweb`, API version `1.16.1`
 - Dev server proxies `/rest` → `https://gonic.ekskog.net` (see `vite.config.js`)
 - Production traffic hits the server the user logs into directly from the browser
+
+### Artist Images
+- All artist folders on the server have a `cover.jpg` (pre-fetched externally — no runtime Deezer calls)
+- Gonic does not reliably populate `artist.coverArt` in `getArtists` even when cover images exist on disk
+- On load, `Artists.vue` calls `getArtistCoverMap()` in parallel with `getArtists()` — this paginates `getAlbumList2` to build an `artistId → coverArt` map from the first album per artist
+- Artist objects are enriched with `coverArt` before `ArtistCard` components render
+- `ArtistCard` uses `artist.coverArt || artist.id` for `getCoverArt` — `artist.id` (e.g. `ar-26`) works as a `getCoverArt` parameter in Gonic even when the `coverArt` field is absent from the API response
+- Do not add Deezer as a fallback for artist images
 
 ### Player
 - HTML5 `<audio>` element handles actual playback; Pinia store (`player.js`) manages reactive state
