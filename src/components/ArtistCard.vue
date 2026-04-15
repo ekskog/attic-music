@@ -1,10 +1,11 @@
 <template>
-  <div ref="cardEl" class="cursor-pointer group" @click="emit('click')">
+  <div class="cursor-pointer group" @click="emit('click')">
     <div class="aspect-square bg-stone-100 rounded-xl overflow-hidden mb-2 transition-transform duration-200 group-hover:scale-[1.03]">
       <img
         v-if="imageUrl"
         :src="imageUrl"
         :alt="artist.name"
+        loading="lazy"
         class="w-full h-full object-cover"
         @error="onImgError"
       />
@@ -20,36 +21,25 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref } from 'vue'
 import { coverUrl } from '../api/subsonic'
 import { getArtistImage } from '../api/deezer'
 
 const props = defineProps({ artist: Object })
 const emit  = defineEmits(['click'])
 
-const cardEl  = ref(null)
-const imageUrl = ref(
-  props.artist.coverArt ? coverUrl(props.artist.coverArt, 200) : null
-)
+// Try local Gonic cover art first (getCoverArt?id=ar-xxx)
+const imageUrl   = ref(coverUrl(props.artist.id, 200))
+const triedLocal = ref(false)
 
-let observer = null
-
-function onImgError() {
-  imageUrl.value = null
-}
-
-onMounted(() => {
-  observer = new IntersectionObserver(async ([entry]) => {
-    if (!entry.isIntersecting) return
-    observer.disconnect()
+async function onImgError() {
+  if (!triedLocal.value) {
+    triedLocal.value = true
+    imageUrl.value = null                              // show letter while fetching
     const url = await getArtistImage(props.artist.name)
-    if (url) imageUrl.value = url
-  }, { rootMargin: '100px' })
-
-  if (cardEl.value) observer.observe(cardEl.value)
-})
-
-onUnmounted(() => {
-  if (observer) observer.disconnect()
-})
+    imageUrl.value = url                               // null → stays as letter
+  } else {
+    imageUrl.value = null
+  }
+}
 </script>
