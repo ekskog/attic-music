@@ -166,12 +166,17 @@ function toggleGroup(name) {
 
 async function openArtist(artist) {
   currentArtist.value = { ...artist }
-  artistDetailImageUrl.value = coverUrl(artist.id, 112)
+  artistDetailImageUrl.value = null
   view.value = 'artist'
   loadingArtist.value = true
   try {
     const data = await getArtist(artist.id)
     currentArtistAlbums.value = data.albums
+    // Use the coverArt field from the full artist response; fall back to the artist id
+    const coverArtId = data.info?.coverArt || artist.id
+    const url = coverUrl(coverArtId, 112)
+    console.log(`[artist image] "${artist.name}" — trying local: getCoverArt?id=${coverArtId}`)
+    artistDetailImageUrl.value = url
   } finally { loadingArtist.value = false }
 }
 
@@ -180,13 +185,14 @@ function onArtistDetailImgLoad() {
 }
 
 async function onArtistDetailImgError() {
-  console.log(`[artist image] "${currentArtist.value?.name}" — not found locally, fetching from Deezer…`)
+  const failedUrl = artistDetailImageUrl.value
+  console.log(`[artist image] "${currentArtist.value?.name}" — local URL failed (${failedUrl}), fetching from Deezer…`)
   artistDetailImageUrl.value = null
   const url = await getArtistImage(currentArtist.value?.name)
   if (url) {
     console.log(`[artist image] "${currentArtist.value?.name}" — using Deezer image`)
   } else {
-    console.log(`[artist image] "${currentArtist.value?.name}" — no image found, showing initial`)
+    console.log(`[artist image] "${currentArtist.value?.name}" — no image found anywhere, showing initial`)
   }
   artistDetailImageUrl.value = url
 }
