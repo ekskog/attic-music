@@ -39,8 +39,18 @@
           <span>{{ currentArtist.name }}</span>
         </div>
         <div class="flex items-center gap-4">
-          <div v-if="currentArtist.coverArt" class="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0">
-            <img :src="coverUrl(currentArtist.coverArt, 56)" :alt="currentArtist.name" class="w-full h-full object-cover" />
+          <div class="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 bg-stone-100">
+            <img
+              v-if="artistDetailImageUrl"
+              :src="artistDetailImageUrl"
+              :alt="currentArtist.name"
+              class="w-full h-full object-cover"
+              @load="onArtistDetailImgLoad"
+              @error="onArtistDetailImgError"
+            />
+            <div v-else class="w-full h-full flex items-center justify-center font-serif text-2xl font-semibold text-stone-300 select-none">
+              {{ currentArtist.name?.[0]?.toUpperCase() }}
+            </div>
           </div>
           <h1 class="font-serif text-4xl font-semibold">{{ currentArtist.name }}</h1>
         </div>
@@ -122,6 +132,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { usePlayerStore } from '../stores/player'
 import { getArtists, getArtist, getAlbum, coverUrl } from '../api/subsonic'
+import { getArtistImage } from '../api/deezer'
 import TrackItem  from '../components/TrackItem.vue'
 import ArtistCard from '../components/ArtistCard.vue'
 
@@ -133,9 +144,10 @@ const loading = ref(false)
 const artistIndex    = ref([])
 const expandedGroups = reactive({})
 
-const currentArtist      = ref(null)
-const currentArtistAlbums = ref([])
-const loadingArtist      = ref(false)
+const currentArtist           = ref(null)
+const currentArtistAlbums     = ref([])
+const loadingArtist           = ref(false)
+const artistDetailImageUrl    = ref(null)
 
 const currentAlbum = ref(null)
 const albumTracks  = ref([])
@@ -154,12 +166,29 @@ function toggleGroup(name) {
 
 async function openArtist(artist) {
   currentArtist.value = { ...artist }
+  artistDetailImageUrl.value = coverUrl(artist.id, 112)
   view.value = 'artist'
   loadingArtist.value = true
   try {
     const data = await getArtist(artist.id)
     currentArtistAlbums.value = data.albums
   } finally { loadingArtist.value = false }
+}
+
+function onArtistDetailImgLoad() {
+  console.log(`[artist image] "${currentArtist.value?.name}" — loaded from local library`)
+}
+
+async function onArtistDetailImgError() {
+  console.log(`[artist image] "${currentArtist.value?.name}" — not found locally, fetching from Deezer…`)
+  artistDetailImageUrl.value = null
+  const url = await getArtistImage(currentArtist.value?.name)
+  if (url) {
+    console.log(`[artist image] "${currentArtist.value?.name}" — using Deezer image`)
+  } else {
+    console.log(`[artist image] "${currentArtist.value?.name}" — no image found, showing initial`)
+  }
+  artistDetailImageUrl.value = url
 }
 
 async function openAlbum(album) {
