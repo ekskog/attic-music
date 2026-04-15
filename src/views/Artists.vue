@@ -172,11 +172,21 @@ async function openArtist(artist) {
   try {
     const data = await getArtist(artist.id)
     currentArtistAlbums.value = data.albums
-    // Use the coverArt field from the full artist response; fall back to the artist id
-    const coverArtId = data.info?.coverArt || artist.id
-    const url = coverUrl(coverArtId, 112)
-    console.log(`[artist image] "${artist.name}" — trying local: getCoverArt?id=${coverArtId}`)
-    artistDetailImageUrl.value = url
+    // Gonic doesn't expose artist-level cover art; use the first album's coverArt as the avatar
+    const coverArtId = data.info?.coverArt || data.albums?.[0]?.coverArt || null
+    if (coverArtId) {
+      console.log(`[artist image] "${artist.name}" — using coverArt id: ${coverArtId}`)
+      artistDetailImageUrl.value = coverUrl(coverArtId, 112)
+    } else {
+      console.log(`[artist image] "${artist.name}" — no coverArt in response, fetching from Deezer…`)
+      const deezerUrl = await getArtistImage(artist.name)
+      if (deezerUrl) {
+        console.log(`[artist image] "${artist.name}" — using Deezer image`)
+      } else {
+        console.log(`[artist image] "${artist.name}" — no image found anywhere, showing initial`)
+      }
+      artistDetailImageUrl.value = deezerUrl
+    }
   } finally { loadingArtist.value = false }
 }
 
