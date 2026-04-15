@@ -22,7 +22,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { coverUrl } from '../api/subsonic'
+import { coverUrl, getArtist } from '../api/subsonic'
 import { getArtistImage } from '../api/deezer'
 
 const props = defineProps({ artist: Object })
@@ -36,8 +36,19 @@ async function onImgError() {
   if (!triedLocal.value) {
     triedLocal.value = true
     imageUrl.value = null                              // show letter while fetching
-    const url = await getArtistImage(props.artist.name)
-    imageUrl.value = url                               // null → stays as letter
+    const deezerUrl = await getArtistImage(props.artist.name)
+    if (deezerUrl) {
+      imageUrl.value = deezerUrl
+      return
+    }
+    // Deezer failed — use the first album's cover art from Gonic
+    try {
+      const data = await getArtist(props.artist.id)
+      const firstCoverArt = data.albums?.[0]?.coverArt
+      imageUrl.value = firstCoverArt ? coverUrl(firstCoverArt, 200) : null
+    } catch (_) {
+      imageUrl.value = null
+    }
   } else {
     imageUrl.value = null
   }
