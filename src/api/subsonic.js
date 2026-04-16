@@ -63,10 +63,11 @@ export async function getDirectory(id) {
 
 export async function getArtists() {
   const data = await request('getArtists')
-  return ensureArray(data.artists?.index).map(g => ({
+  const groups = ensureArray(data.artists?.index).map(g => ({
     name:   g.name,
     artist: ensureArray(g.artist),
   }))
+  return groups
 }
 
 // Returns { artistId: coverArtId } using the first album found per artist.
@@ -76,8 +77,13 @@ export async function getArtistCoverMap() {
   let offset = 0
   const size = 500
   while (true) {
-    const data = await request('getAlbumList2', { type: 'alphabeticalByName', size, offset })
-    const albums = ensureArray(data.albumList2?.album)
+    let albums
+    try {
+      const data = await request('getAlbumList2', { type: 'alphabeticalByName', size, offset })
+      albums = ensureArray(data.albumList2?.album)
+    } catch {
+      break
+    }
     for (const album of albums) {
       if (album.artistId && album.coverArt && !map[album.artistId]) {
         map[album.artistId] = album.coverArt
@@ -143,6 +149,7 @@ export async function updatePlaylist(id, { name, songIdsToAdd = [], songIndexesT
 export async function deletePlaylist(id) {
   return request('deletePlaylist', { id })
 }
+
 
 export async function getArtistInfo(id) {
   const data = await request('getArtistInfo2', { id })

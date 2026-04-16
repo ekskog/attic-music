@@ -11,6 +11,11 @@ export default defineConfig({
         changeOrigin: true,
         secure: true
       },
+      '/artist-images': {
+        target: 'http://localhost:8081',
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/artist-images/, '')
+      },
       '/deezer-api': {
         target: 'https://api.deezer.com',
         changeOrigin: true,

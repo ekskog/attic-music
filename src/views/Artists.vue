@@ -3,21 +3,39 @@
 
     <!-- ARTISTS GRID -->
     <template v-if="view === 'grid'">
-      <div class="px-8 py-7 border-b border-stone-200 bg-white flex-shrink-0">
-        <h1 class="font-serif text-4xl font-semibold">Artists</h1>
+      <div class="border-b border-stone-200 bg-white flex-shrink-0">
+        <div class="px-8 pt-7 pb-3">
+          <h1 class="font-serif text-4xl font-semibold">Artists</h1>
+        </div>
+        <div class="px-6 pb-2 flex flex-wrap gap-0.5">
+          <button
+            v-for="letter in LETTERS"
+            :key="letter"
+            type="button"
+            tabindex="-1"
+            class="min-w-[1.75rem] h-7 px-1 text-xs font-medium rounded transition-colors select-none"
+            :class="expandedGroups[letter]
+              ? 'bg-amber-700 text-white'
+              : 'text-stone-500 hover:text-amber-700 hover:bg-amber-50'"
+            @click="toggleAndScroll(letter)"
+          >
+            {{ letter }}
+          </button>
+        </div>
       </div>
-      <div class="flex-1 overflow-y-auto px-6 py-4 pb-40 md:pb-24">
+      <div ref="scrollContainer" class="flex-1 overflow-y-auto px-6 py-4 pb-40 md:pb-24">
         <div v-if="loading" class="flex items-center justify-center py-24 text-stone-400 text-sm">Loading…</div>
-        <div v-else>
-          <div v-for="group in artistIndex" :key="group.name" class="mb-6">
-            <div
-              class="flex items-center justify-between font-serif text-xl font-semibold text-amber-700 border-b border-stone-200 pb-1 mb-3 cursor-pointer select-none"
-              @click="toggleGroup(group.name)"
-            >
-              <span>{{ group.name }}</span>
-              <span class="text-base transition-transform duration-200 inline-block" :class="{ 'rotate-90': expandedGroups[group.name] }">›</span>
+        <template v-else>
+          <template v-for="group in artistIndex" :key="group.name">
+          <div
+            v-if="expandedGroups[group.name]"
+            :ref="el => setGroupRef(group.name, el)"
+            class="mb-6"
+          >
+            <div class="font-serif text-xl font-semibold text-amber-700 border-b border-stone-200 pb-1 mb-3">
+              {{ group.name }}
             </div>
-            <div v-if="expandedGroups[group.name]" class="grid gap-4" style="grid-template-columns: repeat(auto-fill, minmax(120px, 1fr))">
+            <div class="grid gap-4" style="grid-template-columns: repeat(auto-fill, minmax(120px, 1fr))">
               <ArtistCard
                 v-for="artist in group.artist"
                 :key="artist.id"
@@ -26,7 +44,8 @@
               />
             </div>
           </div>
-        </div>
+          </template>
+        </template>
       </div>
     </template>
 
@@ -128,19 +147,27 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, nextTick, onMounted } from 'vue'
 import { usePlayerStore } from '../stores/player'
-import { getArtists, getArtist, getAlbum, getArtistCoverMap, coverUrl } from '../api/subsonic'
+import { getArtists, getArtist, getAlbum, coverUrl } from '../api/subsonic'
 import TrackItem  from '../components/TrackItem.vue'
 import ArtistCard from '../components/ArtistCard.vue'
 
 const player = usePlayerStore()
+
+const LETTERS = ['#', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
 
 const view    = ref('grid')
 const loading = ref(false)
 
 const artistIndex    = ref([])
 const expandedGroups = reactive({})
+const scrollContainer = ref(null)
+const groupRefs = {}
+
+function setGroupRef(name, el) {
+  if (el) groupRefs[name] = el
+}
 
 const currentArtist           = ref(null)
 const currentArtistAlbums     = ref([])
@@ -153,21 +180,29 @@ const albumTracks  = ref([])
 async function loadArtists() {
   loading.value = true
   try {
-    const [index, coverMap] = await Promise.all([getArtists(), getArtistCoverMap()])
+    const index = await getArtists()
     for (const group of index) {
-      for (const artist of group.artist) {
-        if (!artist.coverArt && coverMap[artist.id]) {
-          artist.coverArt = coverMap[artist.id]
-        }
-      }
-      expandedGroups[group.name] = true
+      expandedGroups[group.name] = false
     }
     artistIndex.value = index
-  } finally { loading.value = false }
+  } finally {
+    loading.value = false
+  }
+
 }
 
-function toggleGroup(name) {
-  expandedGroups[name] = !expandedGroups[name]
+function toggleAndScroll(name) {
+  const opening = !expandedGroups[name]
+  expandedGroups[name] = opening
+  if (opening) {
+    nextTick(() => {
+      const el = groupRefs[name]
+      const container = scrollContainer.value
+      if (el && container) {
+        container.scrollTo({ top: el.offsetTop - 8, behavior: 'smooth' })
+      }
+    })
+  }
 }
 
 async function openArtist(artist) {

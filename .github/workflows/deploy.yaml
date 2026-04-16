@@ -7,10 +7,9 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build-and-deploy:
+  build-attic-music:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -62,3 +61,56 @@ jobs:
         run: |
           kubectl rollout restart deployment/attic-music -n webapps
           kubectl rollout status deployment/attic-music -n webapps --timeout=120s
+
+  build-artist-images:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check for changes in artist-images/
+        id: changes
+        run: |
+          git diff --name-only HEAD~1 HEAD | grep -q '^artist-images/' && echo "changed=true" >> $GITHUB_OUTPUT || echo "changed=false" >> $GITHUB_OUTPUT
+
+      - name: Log in to GHCR
+        if: steps.changes.outputs.changed == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push artist-images
+        if: steps.changes.outputs.changed == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: artist-images
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/artist-images:latest
+            ghcr.io/${{ github.repository_owner }}/artist-images:${{ github.sha }}
+
+      - name: Set up kubectl
+        if: steps.changes.outputs.changed == 'true'
+        uses: azure/setup-kubectl@v3
+
+      - name: Configure kubeconfig
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Apply and rollout
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          kubectl apply -f k8s/artist-images.yaml
+          kubectl rollout restart deployment/artist-images -n webapps
+          kubectl rollout status deployment/artist-images -n webapps --timeout=120s

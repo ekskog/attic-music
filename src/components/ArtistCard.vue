@@ -21,21 +21,14 @@
 </template>
 
 <script setup>
-import { ref, watchEffect } from 'vue'
-import { coverUrl } from '../api/subsonic'
+import { ref } from 'vue'
 
 const props = defineProps({ artist: Object })
 const emit  = defineEmits(['click'])
 
-const imageUrl = ref(null)
-
-// Watch so imageUrl stays in sync if artist.coverArt is enriched after first render.
-watchEffect(() => {
-  imageUrl.value = coverUrl(props.artist.coverArt || props.artist.id, 200)
-})
+const imageUrl = ref(`/artist-images/avatar?name=${encodeURIComponent(props.artist.name)}`)
 
 function onImgError() {
-  console.warn(`[artist image] no cover for "${props.artist.name}" (id: ${props.artist.id}, coverArt: ${props.artist.coverArt ?? 'none'})`)
   imageUrl.value = null
 }
 </script>
