@@ -14,7 +14,7 @@
 
     <div class="relative justify-self-center">
       <button
-        class="opacity-0 group-hover:opacity-100 text-stone-400 hover:text-amber-700 transition-all bg-transparent border-none text-lg leading-none"
+        class="md:opacity-0 md:group-hover:opacity-100 text-stone-400 hover:text-amber-700 active:text-amber-700 transition-all bg-transparent border-none text-lg leading-none"
         @click.stop="toggleMenu"
         title="Add to playlist"
       >+</button>

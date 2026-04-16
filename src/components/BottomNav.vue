@@ -21,6 +21,7 @@ const navItems = [
   { to: '/artists',   icon: '🎤', label: 'Artists'   },
   { to: '/albums',    icon: '💿', label: 'Albums'    },
   { to: '/playlists', icon: '📋', label: 'Playlists' },
+  { to: '/search',    icon: '🔍', label: 'Search'    },
 ]
 
 function isActive(path) {

@@ -5,6 +5,7 @@ import Login     from '../views/Login.vue'
 import Artists   from '../views/Artists.vue'
 import Albums    from '../views/Albums.vue'
 import Playlists from '../views/Playlists.vue'
+import Search    from '../views/Search.vue'
 
 const routes = [
   { path: '/login',         component: Login,     name: 'login'           },
@@ -14,6 +15,7 @@ const routes = [
   { path: '/albums/:id',    component: Albums,    name: 'album-detail'    },
   { path: '/playlists',     component: Playlists, name: 'playlists'       },
   { path: '/playlists/:id', component: Playlists, name: 'playlist-detail' },
+  { path: '/search',        component: Search,    name: 'search'          },
   { path: '/',              redirect: '/artists'                           },
 ]
 

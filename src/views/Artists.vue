@@ -4,10 +4,10 @@
     <!-- ARTISTS GRID -->
     <template v-if="view === 'grid'">
       <div class="border-b border-stone-200 bg-white flex-shrink-0">
-        <div class="px-8 pt-7 pb-3">
-          <h1 class="font-serif text-4xl font-semibold">Artists</h1>
+        <div class="px-4 md:px-8 pt-5 md:pt-7 pb-3">
+          <h1 class="font-serif text-2xl md:text-4xl font-semibold">Artists</h1>
         </div>
-        <div class="px-6 pb-2 flex flex-wrap gap-0.5">
+        <div class="px-4 md:px-6 pb-2 flex flex-wrap gap-0.5">
           <button
             v-for="letter in LETTERS"
             :key="letter"
@@ -51,14 +51,14 @@
 
     <!-- ARTIST DETAIL -->
     <template v-else-if="view === 'artist'">
-      <div class="px-8 py-7 border-b border-stone-200 bg-white flex-shrink-0">
+      <div class="px-4 md:px-8 py-5 md:py-7 border-b border-stone-200 bg-white flex-shrink-0">
         <div class="flex items-center gap-1.5 text-xs text-stone-400 mb-3">
           <span class="cursor-pointer hover:text-amber-700 transition-colors" @click="view = 'grid'">Artists</span>
           <span class="opacity-40">›</span>
           <span>{{ currentArtist.name }}</span>
         </div>
         <div class="flex items-center gap-4">
-          <div class="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 bg-stone-100">
+          <div class="w-12 h-12 md:w-14 md:h-14 rounded-xl overflow-hidden flex-shrink-0 bg-stone-100">
             <img
               v-if="artistDetailImageUrl"
               :src="artistDetailImageUrl"
@@ -70,7 +70,7 @@
               {{ currentArtist.name?.[0]?.toUpperCase() }}
             </div>
           </div>
-          <h1 class="font-serif text-4xl font-semibold">{{ currentArtist.name }}</h1>
+          <h1 class="font-serif text-2xl md:text-4xl font-semibold">{{ currentArtist.name }}</h1>
         </div>
       </div>
       <div class="flex-1 overflow-y-auto px-6 py-4 pb-40 md:pb-24">
@@ -97,7 +97,7 @@
 
     <!-- ALBUM DETAIL -->
     <template v-else-if="view === 'album'">
-      <div class="px-8 py-7 border-b border-stone-200 bg-white flex-shrink-0">
+      <div class="px-4 md:px-8 py-5 md:py-7 border-b border-stone-200 bg-white flex-shrink-0">
         <div class="flex items-center gap-1.5 text-xs text-stone-400 mb-2 flex-wrap">
           <span class="cursor-pointer hover:text-amber-700 transition-colors" @click="view = 'grid'">Artists</span>
           <span class="opacity-40">›</span>
@@ -105,9 +105,9 @@
           <span class="opacity-40">›</span>
           <span>{{ currentAlbum.name }}</span>
         </div>
-        <h1 class="font-serif text-4xl font-semibold">{{ currentAlbum.name }}</h1>
+        <h1 class="font-serif text-2xl md:text-4xl font-semibold truncate">{{ currentAlbum.name }}</h1>
       </div>
-      <div class="flex-1 overflow-y-auto px-8 py-6 pb-40 md:pb-24">
+      <div class="flex-1 overflow-y-auto px-4 md:px-8 py-4 md:py-6 pb-40 md:pb-24">
         <div v-if="loading" class="flex items-center justify-center py-24 text-stone-400 text-sm">Loading…</div>
         <div v-else>
           <div class="flex gap-6 mb-8 items-end">
@@ -128,9 +128,9 @@
             </div>
           </div>
 
-          <div class="grid gap-px text-xs uppercase tracking-widest text-stone-400 px-3 pb-2 border-b border-stone-200 mb-1"
-            style="grid-template-columns: 36px 1fr 160px 56px 32px">
-            <span class="text-center">#</span><span>Title</span><span>Artist</span><span>Time</span><span></span>
+          <div class="grid gap-2 text-xs uppercase tracking-widest text-stone-400 px-3 pb-2 border-b border-stone-200 mb-1"
+            style="grid-template-columns: 28px 1fr 44px 28px">
+            <span class="text-center">#</span><span>Title</span><span>Time</span><span></span>
           </div>
           <TrackItem
             v-for="(track, i) in albumTracks" :key="track.id"
