@@ -82,8 +82,8 @@
             @click="openAlbum(album)"
           >
             <div class="aspect-square bg-amber-50 mb-1 overflow-hidden relative rounded">
-              <img v-if="album.coverArt" :src="coverUrl(album.coverArt)" :alt="album.name" class="w-full h-full object-cover" @error="onImgError" />
-              <div v-else class="w-full h-full flex items-center justify-center text-2xl">💿</div>
+              <div class="w-full h-full flex items-center justify-center text-2xl">💿</div>
+              <img :src="coverUrl(album.coverArt || album.id)" :alt="album.name" class="absolute inset-0 w-full h-full object-cover" @error="e => e.target.style.display='none'" />
               <div class="absolute inset-0 bg-black/25 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded">
                 <button class="w-7 h-7 rounded-full bg-white flex items-center justify-center text-xs pl-0.5" @click.stop="playAlbum(album)">▶</button>
               </div>
@@ -111,9 +111,9 @@
         <div v-if="loading" class="flex items-center justify-center py-24 text-stone-400 text-sm">Loading…</div>
         <div v-else>
           <div class="flex gap-6 mb-8 items-end">
-            <div class="w-40 h-40 flex-shrink-0 bg-amber-50 overflow-hidden">
-              <img v-if="currentAlbum.coverArt" :src="coverUrl(currentAlbum.coverArt)" :alt="currentAlbum.name" class="w-full h-full object-cover" @error="onImgError" />
-              <div v-else class="w-full h-full flex items-center justify-center text-5xl">💿</div>
+            <div class="w-40 h-40 flex-shrink-0 bg-amber-50 overflow-hidden relative">
+              <div class="w-full h-full flex items-center justify-center text-5xl">💿</div>
+              <img :src="coverUrl(currentAlbum.coverArt || currentAlbum.id)" :alt="currentAlbum.name" class="absolute inset-0 w-full h-full object-cover" @error="e => e.target.style.display='none'" />
             </div>
             <div>
               <div class="text-xs uppercase tracking-widest text-stone-400 mb-2">

@@ -14,11 +14,27 @@ var coverMap = map[string]string{}
 var nonAlnum = regexp.MustCompile(`[^a-z0-9]+`)
 var logRequests bool
 
+var articles = map[string]bool{
+	"the": true, "los": true, "las": true,
+	"le": true, "les": true, "el": true, "la": true,
+	"die": true, "das": true, "der": true, "gli": true, "il": true,
+}
+
 func normalize(s string) string {
 	s = strings.ToLower(s)
-	s = nonAlnum.ReplaceAllString(s, "_")
-	s = strings.Trim(s, "_")
-	return s
+	// split on non-alnum so we can detect article boundaries
+	parts := nonAlnum.Split(s, -1)
+	filtered := parts[:0]
+	for _, p := range parts {
+		if p != "" {
+			filtered = append(filtered, p)
+		}
+	}
+	// strip leading article only when more words follow
+	if len(filtered) > 1 && articles[filtered[0]] {
+		filtered = filtered[1:]
+	}
+	return strings.Join(filtered, "")
 }
 
 func indexDir(dir string) {

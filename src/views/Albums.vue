@@ -24,8 +24,8 @@
                 @click="openAlbum(album)"
               >
                 <div class="aspect-square bg-amber-50 mb-1.5 overflow-hidden relative rounded-lg">
-                  <img v-if="album.coverArt" :src="coverUrl(album.coverArt)" :alt="album.name" class="w-full h-full object-cover" @error="onImgError" />
-                  <div v-else class="w-full h-full flex items-center justify-center text-3xl">💿</div>
+                  <div class="w-full h-full flex items-center justify-center text-3xl">💿</div>
+                  <img :src="coverUrl(album.coverArt || album.id)" :alt="album.name" class="absolute inset-0 w-full h-full object-cover" @error="e => e.target.style.display='none'" />
                   <div class="absolute inset-0 bg-black/25 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
                     <button class="w-8 h-8 rounded-full bg-white flex items-center justify-center text-sm pl-0.5" @click.stop="playAlbum(album)">▶</button>
                   </div>
@@ -56,8 +56,8 @@
               @click="openAlbum(album)"
             >
               <div class="aspect-square bg-amber-50 mb-1.5 overflow-hidden relative rounded-lg">
-                <img v-if="album.coverArt" :src="coverUrl(album.coverArt)" :alt="album.name" class="w-full h-full object-cover" @error="onImgError" />
-                <div v-else class="w-full h-full flex items-center justify-center text-3xl">💿</div>
+                <div class="w-full h-full flex items-center justify-center text-3xl">💿</div>
+                <img :src="coverUrl(album.coverArt || album.id)" :alt="album.name" class="absolute inset-0 w-full h-full object-cover" @error="e => e.target.style.display='none'" />
                 <div class="absolute inset-0 bg-black/25 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
                   <button
                     class="w-9 h-9 rounded-full bg-white flex items-center justify-center text-sm pl-0.5"
@@ -90,9 +90,9 @@
         <div v-if="loading" class="flex items-center justify-center py-24 text-stone-400 text-sm">Loading…</div>
         <div v-else>
           <div class="flex gap-4 mb-6 items-end">
-            <div class="w-28 h-28 flex-shrink-0 bg-amber-50 overflow-hidden rounded-lg shadow-md">
-              <img v-if="currentAlbum.coverArt" :src="coverUrl(currentAlbum.coverArt)" :alt="currentAlbum.name" class="w-full h-full object-cover" @error="onImgError" />
-              <div v-else class="w-full h-full flex items-center justify-center text-4xl">💿</div>
+            <div class="w-28 h-28 flex-shrink-0 bg-amber-50 overflow-hidden rounded-lg shadow-md relative">
+              <div class="w-full h-full flex items-center justify-center text-4xl">💿</div>
+              <img :src="coverUrl(currentAlbum.coverArt || currentAlbum.id)" :alt="currentAlbum.name" class="absolute inset-0 w-full h-full object-cover" @error="e => e.target.style.display='none'" />
             </div>
             <div class="flex-1 overflow-hidden">
               <div class="text-xs uppercase tracking-widest text-stone-400 mb-1">
