@@ -155,3 +155,11 @@ export async function getArtistInfo(id) {
   const data = await request('getArtistInfo2', { id })
   return data.artistInfo2 || {}
 }
+
+export async function search(query) {
+  const data = await request('search3', { query, artistCount: 5, albumCount: 8, songCount: 0 })
+  return {
+    artists: ensureArray(data.searchResult3?.artist),
+    albums:  ensureArray(data.searchResult3?.album),
+  }
+}

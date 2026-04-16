@@ -147,12 +147,15 @@
 </template>
 
 <script setup>
-import { ref, reactive, nextTick, onMounted } from 'vue'
+import { ref, reactive, nextTick, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { usePlayerStore } from '../stores/player'
 import { getArtists, getArtist, getAlbum, coverUrl } from '../api/subsonic'
 import TrackItem  from '../components/TrackItem.vue'
 import ArtistCard from '../components/ArtistCard.vue'
 
+const route  = useRoute()
+const router = useRouter()
 const player = usePlayerStore()
 
 const LETTERS = ['#', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
@@ -251,5 +254,27 @@ function onImgError(e) {
   try { if (e?.target) e.target.style.display = 'none' } catch (_) {}
 }
 
-onMounted(loadArtists)
+async function openArtistById(id) {
+  currentArtist.value         = { id, name: '' }
+  artistDetailImageUrl.value  = null
+  view.value                  = 'artist'
+  loadingArtist.value         = true
+  try {
+    const data = await getArtist(id)
+    currentArtist.value        = data.info
+    currentArtistAlbums.value  = data.albums
+    const coverArtId = data.info?.coverArt || id
+    artistDetailImageUrl.value = coverUrl(coverArtId, 112)
+  } finally { loadingArtist.value = false }
+}
+
+watch(() => route.params.id, (id) => {
+  if (id) openArtistById(id)
+  else view.value = 'grid'
+})
+
+onMounted(async () => {
+  await loadArtists()
+  if (route.params.id) openArtistById(route.params.id)
+})
 </script>
