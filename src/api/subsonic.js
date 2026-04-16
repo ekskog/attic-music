@@ -61,13 +61,31 @@ export async function getDirectory(id) {
   return ensureArray(data.directory?.child)
 }
 
+const ARTICLES = /^(the|a|an|los|las|le|les|el|la|die|das|der|gli|il)\s+/i
+
+function sortableName(name) {
+  return name.replace(ARTICLES, '').trim()
+}
+
 export async function getArtists() {
   const data = await request('getArtists')
-  const groups = ensureArray(data.artists?.index).map(g => ({
-    name:   g.name,
-    artist: ensureArray(g.artist),
-  }))
-  return groups
+  const all = []
+  for (const g of ensureArray(data.artists?.index)) {
+    for (const a of ensureArray(g.artist)) all.push(a)
+  }
+  all.sort((a, b) =>
+    sortableName(a.name).localeCompare(sortableName(b.name), undefined, { sensitivity: 'base' })
+  )
+  const map = new Map()
+  for (const artist of all) {
+    const ch = sortableName(artist.name)[0]?.toUpperCase() || '#'
+    const key = /[A-Z]/.test(ch) ? ch.toLowerCase() : '#'
+    if (!map.has(key)) map.set(key, [])
+    map.get(key).push(artist)
+  }
+  return [...map.entries()]
+    .sort(([a], [b]) => a === '#' ? 1 : b === '#' ? -1 : a.localeCompare(b))
+    .map(([name, artist]) => ({ name, artist }))
 }
 
 // Returns { artistId: coverArtId } using the first album found per artist.
