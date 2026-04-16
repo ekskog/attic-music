@@ -23,6 +23,9 @@ npm run preview   # serve production build locally
 ## Project Structure
 
 ```
+artist-images/
+  main.go         # Go sidecar — serves artist cover.jpg from NFS
+  Dockerfile      # multi-stage build → minimal Alpine image
 src/
   api/
     subsonic.js   # Subsonic REST API client
@@ -30,6 +33,7 @@ src/
   stores/
     config.js     # user config (server URL, credentials, lastfm)
     player.js     # playback state, queue, shuffle/repeat
+    playlist.js   # playlist list cache + addTrack action
   router/
     index.js      # route definitions + auth guards
   views/
@@ -65,17 +69,24 @@ src/
 - Production traffic hits the server the user logs into directly from the browser
 
 ### Artist Images
-- All artist folders on the server have a `cover.jpg` (pre-fetched externally)
-- Gonic does not populate `artist.coverArt` in `getArtists` — the field is always empty regardless of indexing
-- `getCoverArt?id=ar-xxx` works for some artists when Gonic has indexed the folder cover, but not reliably for all
-- `ArtistCard` tries `getCoverArt?id=artist.id` first, then falls back to Deezer `search/artist` on failure
-- Deezer is called lazily in `onImgError` — only for visible artists whose local cover failed, naturally rate-limited by demand
-- Deezer returns a placeholder URL containing `/artist//` when no image exists; these are filtered out and fall back to the letter placeholder
+- All artist folders on the NFS share have a `cover.jpg` (pre-fetched externally)
+- Gonic does **not** populate `artist.coverArt` in `getArtists` — the field is always empty regardless of indexing; `getCoverArt?id=ar-xxx` is also unreliable
+- A dedicated Go sidecar (`artist-images/`) serves images directly from the NFS volume, bypassing the Subsonic API entirely
+- `ArtistCard` requests `/artist-images/avatar?name=<artist>` and falls back to a letter placeholder on 404
+- The sidecar scans the music root at startup, building a normalized name → file path map; it recurses one level to handle the partition directory structure (`mp3/<letter>/<artist>/cover.jpg`)
+- Request logging (HIT/MISS with latency) is controlled by the `LOG_REQUESTS` env var, set via ConfigMap `artist-images-config` in namespace `webapps`
+- In dev, Vite proxies `/artist-images` → `http://localhost:8081`; in production, Nginx proxies it to the `artist-images` ClusterIP service
+- Manifest: `k8s/artist-images.yaml` (ConfigMap + Deployment + Service); image: `ghcr.io/ekskog/artist-images:latest`
 
 ### Player
 - HTML5 `<audio>` element handles actual playback; Pinia store (`player.js`) manages reactive state
 - Stream URLs are authenticated Subsonic `/stream` endpoints
 - Queue, shuffle, repeat, seek, and progress are all store-managed
+
+### Playlists
+- Playlists are fully server-side (Gonic); `getPlaylists`, `getPlaylist`, `updatePlaylist`, `deletePlaylist` are all in `subsonic.js`
+- `playlist.js` store caches the playlist list (fetched once on first use); `addTrack(playlistId, trackId)` calls `updatePlaylist` to append a song
+- `TrackItem`'s `+` button opens an inline dropdown listing playlists plus an "Add to queue" option — no view changes required; the dropdown is self-contained in the component
 
 ### Responsive Layout
 - Desktop: sidebar + main content + footer player
