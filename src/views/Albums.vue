@@ -225,8 +225,19 @@ onMounted(async () => {
   if (route.params.id) {
     const album = albums.value.find(a => a.id === route.params.id)
     if (album) openAlbum(album)
+    else openAlbumById(route.params.id)
   }
 })
+
+async function openAlbumById(id) {
+  loading.value = true
+  router.push({ name: 'album-detail', params: { id } })
+  try {
+    const data = await getAlbum(id)
+    currentAlbum.value = data.info
+    albumTracks.value  = data.tracks
+  } finally { loading.value = false }
+}
 
 watch(() => route.params.id, (id) => {
   if (!id) {
@@ -234,6 +245,7 @@ watch(() => route.params.id, (id) => {
   } else {
     const album = albums.value.find(a => a.id === id)
     if (album) openAlbum(album)
+    else openAlbumById(id)
   }
 })
 </script>
