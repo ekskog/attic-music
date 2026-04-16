@@ -1,3 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: artist-images-config
+  namespace: webapps
+data:
+  LOG_REQUESTS: "true"
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -22,6 +30,11 @@ spec:
           env:
             - name: MUSIC_ROOT
               value: /media/music
+            - name: LOG_REQUESTS
+              valueFrom:
+                configMapKeyRef:
+                  name: artist-images-config
+                  key: LOG_REQUESTS
           volumeMounts:
             - name: music
               mountPath: /media/music
