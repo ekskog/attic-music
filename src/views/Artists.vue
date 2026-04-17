@@ -222,8 +222,12 @@ async function openArtist(artist) {
 }
 
 function onArtistDetailImgError() {
-  console.warn(`[artist image] no image for "${currentArtist.value?.name}" (url: ${artistDetailImageUrl.value})`)
-  artistDetailImageUrl.value = null
+  const sidecarUrl = `/artist-images/avatar?name=${encodeURIComponent(currentArtist.value?.name)}`
+  if (artistDetailImageUrl.value !== sidecarUrl) {
+    artistDetailImageUrl.value = sidecarUrl
+  } else {
+    artistDetailImageUrl.value = null
+  }
 }
 
 async function openAlbum(album) {
