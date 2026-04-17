@@ -22,6 +22,7 @@ var articles = map[string]bool{
 
 func normalize(s string) string {
 	s = strings.ToLower(s)
+	s = strings.ReplaceAll(s, "&", "and")
 	// split on non-alnum so we can detect article boundaries
 	parts := nonAlnum.Split(s, -1)
 	filtered := parts[:0]
