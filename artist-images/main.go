@@ -8,7 +8,10 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode"
 
+	"golang.org/x/text/runes"
+	"golang.org/x/text/transform"
 	"golang.org/x/text/unicode/norm"
 )
 
@@ -22,8 +25,15 @@ var articles = map[string]bool{
 	"die": true, "das": true, "der": true, "gli": true, "il": true,
 }
 
+var asciiFolder = transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
+
+func foldAccents(s string) string {
+	result, _, _ := transform.String(asciiFolder, s)
+	return result
+}
+
 func normalize(s string) string {
-	s = norm.NFC.String(s)
+	s = foldAccents(s)
 	s = strings.ToLower(s)
 	s = strings.ReplaceAll(s, "&", "and")
 	// split on non-alnum so we can detect article boundaries
