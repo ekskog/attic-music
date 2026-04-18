@@ -1,4 +1,4 @@
-FROM golang:1.23-bookworm AS builder
+FROM golang:1.22-bookworm AS builder
 WORKDIR /app
 COPY main.go .
 RUN go mod init artist-images && go mod tidy && go build -o artist-images .

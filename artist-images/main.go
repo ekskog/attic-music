@@ -8,11 +8,6 @@ import (
 	"regexp"
 	"strings"
 	"time"
-	"unicode"
-
-	"golang.org/x/text/runes"
-	"golang.org/x/text/transform"
-	"golang.org/x/text/unicode/norm"
 )
 
 var coverMap = map[string]string{}
@@ -25,15 +20,24 @@ var articles = map[string]bool{
 	"die": true, "das": true, "der": true, "gli": true, "il": true,
 }
 
-var asciiFolder = transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
-
-func foldAccents(s string) string {
-	result, _, _ := transform.String(asciiFolder, s)
-	return result
-}
+var accentMap = strings.NewReplacer(
+	"à", "a", "á", "a", "â", "a", "ã", "a", "ä", "a", "å", "a",
+	"è", "e", "é", "e", "ê", "e", "ë", "e",
+	"ì", "i", "í", "i", "î", "i", "ï", "i",
+	"ò", "o", "ó", "o", "ô", "o", "õ", "o", "ö", "o", "ø", "o",
+	"ù", "u", "ú", "u", "û", "u", "ü", "u",
+	"ý", "y", "ÿ", "y",
+	"ñ", "n", "ç", "c", "ß", "ss",
+	"À", "a", "Á", "a", "Â", "a", "Ã", "a", "Ä", "a", "Å", "a",
+	"È", "e", "É", "e", "Ê", "e", "Ë", "e",
+	"Ì", "i", "Í", "i", "Î", "i", "Ï", "i",
+	"Ò", "o", "Ó", "o", "Ô", "o", "Õ", "o", "Ö", "o", "Ø", "o",
+	"Ù", "u", "Ú", "u", "Û", "u", "Ü", "u",
+	"Ý", "y", "Ñ", "n", "Ç", "c",
+)
 
 func normalize(s string) string {
-	s = foldAccents(s)
+	s = accentMap.Replace(s)
 	s = strings.ToLower(s)
 	s = strings.ReplaceAll(s, "&", "and")
 	// split on non-alnum so we can detect article boundaries
