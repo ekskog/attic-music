@@ -8,6 +8,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"golang.org/x/text/unicode/norm"
 )
 
 var coverMap = map[string]string{}
@@ -21,6 +23,7 @@ var articles = map[string]bool{
 }
 
 func normalize(s string) string {
+	s = norm.NFC.String(s)
 	s = strings.ToLower(s)
 	s = strings.ReplaceAll(s, "&", "and")
 	// split on non-alnum so we can detect article boundaries
