@@ -1,7 +1,5 @@
 import { useConfigStore } from '../stores/config'
 
-function timeAgo(dateStr) {
-  const diff = Math.floor((Date.now() - new Date(dateStr + ' UTC')) / 1000)
 function timeAgo(uts) {
   if (!uts) return ''
   const diff = Math.floor(Date.now() / 1000 - parseInt(uts))
@@ -39,7 +37,6 @@ export async function getRecentTracks(limit = 5) {
       artist:     t.artist?.['#text'] || t.artist,
       album:      t.album?.['#text']  || '',
       nowplaying: t['@attr']?.nowplaying === 'true',
-      when:       t.date ? timeAgo(t.date['#text']) : '',
       when:       t.date ? timeAgo(t.date.uts) : '',
     }))
   } catch(e) {
