@@ -2,6 +2,9 @@ import { useConfigStore } from '../stores/config'
 
 function timeAgo(dateStr) {
   const diff = Math.floor((Date.now() - new Date(dateStr + ' UTC')) / 1000)
+function timeAgo(uts) {
+  if (!uts) return ''
+  const diff = Math.floor(Date.now() / 1000 - parseInt(uts))
   if (diff < 60)    return 'just now'
   if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
@@ -25,6 +28,10 @@ export async function getRecentTracks(limit = 5) {
   try {
     const res    = await fetch(url)
     const json   = await res.json()
+    if (json.error) {
+      console.error('Last.fm API Error:', json.message)
+      return []
+    }
     const tracks = ensureArray(json?.recenttracks?.track)
 
     return tracks.slice(0, limit).map(t => ({
@@ -33,8 +40,10 @@ export async function getRecentTracks(limit = 5) {
       album:      t.album?.['#text']  || '',
       nowplaying: t['@attr']?.nowplaying === 'true',
       when:       t.date ? timeAgo(t.date['#text']) : '',
+      when:       t.date ? timeAgo(t.date.uts) : '',
     }))
   } catch(e) {
+    console.error('Failed to fetch Last.fm tracks:', e)
     return []
   }
 }
