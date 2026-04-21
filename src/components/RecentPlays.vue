@@ -36,7 +36,14 @@ const scrobbles = ref([])
 let timer = null
 
 async function fetchScrobbles() {
-  scrobbles.value = await getRecentTracks(5)
+  try {
+    scrobbles.value = await getRecentTracks(5)
+  } catch (e) {
+    if (e.permanent) {
+      clearInterval(timer)
+      timer = null
+    }
+  }
 }
 
 onMounted(() => {

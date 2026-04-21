@@ -28,6 +28,10 @@ export async function getRecentTracks(limit = 5) {
     const json   = await res.json()
     if (json.error) {
       console.error('Last.fm API Error:', json.message)
+      // Permanent errors (suspended key, invalid key, etc.) — stop retrying
+      if (json.error === 26 || json.error === 10 || res.status === 403) {
+        throw Object.assign(new Error(json.message), { permanent: true })
+      }
       return []
     }
     const tracks = ensureArray(json?.recenttracks?.track)
