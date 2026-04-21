@@ -55,7 +55,15 @@ func normalize(s string) string {
 	return strings.Join(filtered, "")
 }
 
-func indexDir(dir string) {
+
+func buildMap(root string) {
+	fresh := map[string]string{}
+	indexDirInto(root, fresh)
+	coverMap = fresh
+	log.Printf("indexed %d artist covers from %s", len(coverMap), root)
+}
+
+func indexDirInto(dir string, m map[string]string) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		log.Printf("cannot read %q: %v", dir, err)
@@ -67,18 +75,11 @@ func indexDir(dir string) {
 		}
 		cover := filepath.Join(dir, e.Name(), "cover.jpg")
 		if _, err := os.Stat(cover); err == nil {
-			// Artist folder — has cover.jpg directly inside
-			coverMap[normalize(e.Name())] = cover
+			m[normalize(e.Name())] = cover
 		} else {
-			// Partition folder (e.g. "1/") — scan one level deeper
-			indexDir(filepath.Join(dir, e.Name()))
+			indexDirInto(filepath.Join(dir, e.Name()), m)
 		}
 	}
-}
-
-func buildMap(root string) {
-	indexDir(root)
-	log.Printf("indexed %d artist covers from %s", len(coverMap), root)
 }
 
 func main() {
@@ -88,6 +89,13 @@ func main() {
 	}
 	logRequests = strings.ToLower(os.Getenv("LOG_REQUESTS")) == "true"
 	buildMap(root)
+
+	go func() {
+		for range time.Tick(time.Hour) {
+			log.Printf("rescanning %s", root)
+			buildMap(root)
+		}
+	}()
 
 	http.HandleFunc("/avatar", func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
