@@ -34,14 +34,17 @@ export const usePlayerStore = defineStore('player', () => {
     currentTime.value = audio.currentTime
     if (!scrobbleSubmitted && audio.currentTime >= scrobbleThreshold) {
       scrobbleSubmitted = true
-      scrobble(currentTrack.value.id, true).catch(() => {})
+      console.log('[scrobble] submitting for', currentTrack.value?.title, 'at', Math.round(audio.currentTime) + 's')
+      scrobble(currentTrack.value.id, true)
+        .then(() => console.log('[scrobble] submission ok'))
+        .catch(e => console.error('[scrobble] submission failed:', e))
     }
   })
   audio.addEventListener('durationchange', () => {
     duration.value = isFinite(audio.duration) ? audio.duration : 0
-    // scrobble threshold: 50% or 4 minutes, whichever is less; minimum 30s
     if (duration.value > 0) {
       scrobbleThreshold = Math.max(30, Math.min(duration.value * 0.5, 240))
+      console.log('[scrobble] duration', Math.round(duration.value) + 's', '→ threshold', Math.round(scrobbleThreshold) + 's')
     }
   })
   audio.addEventListener('play',           () => { isPlaying.value = true })
@@ -64,8 +67,11 @@ export const usePlayerStore = defineStore('player', () => {
     scrobbleThreshold = Infinity
     currentTrack.value = track
     audio.src = streamUrl(track.id)
-    audio.play()
-    scrobble(track.id, false).catch(() => {})
+    audio.play().catch(e => { if (e.name !== 'AbortError') console.error('[player] play failed:', e) })
+    console.log('[scrobble] now-playing for', track.title)
+    scrobble(track.id, false)
+      .then(() => console.log('[scrobble] now-playing ok'))
+      .catch(e => console.error('[scrobble] now-playing failed:', e))
   }
 
   function playFromQueue(index) {
