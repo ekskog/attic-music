@@ -16,7 +16,7 @@
         class="nav-item"
         :class="{ active: isActive(item.to) }"
       >
-        <span class="w-4 text-center">{{ item.icon }}</span>
+        <component :is="item.icon" :size="16" />
         {{ item.label }}
       </RouterLink>
     </nav>
@@ -94,15 +94,16 @@ import { useRoute, useRouter } from 'vue-router'
 import { useConfigStore } from '../stores/config'
 import { search } from '../api/subsonic'
 import RecentPlays from './RecentPlays.vue'
+import { Mic2, Disc3, ListMusic } from 'lucide-vue-next'
 
 const config = useConfigStore()
 const route  = useRoute()
 const router = useRouter()
 
 const navItems = [
-  { to: '/artists',   icon: '🎤', label: 'Artists'   },
-  { to: '/albums',    icon: '💿', label: 'Albums'    },
-  { to: '/playlists', icon: '📋', label: 'Playlists' },
+  { to: '/artists',   icon: Mic2,      label: 'Artists'   },
+  { to: '/albums',    icon: Disc3,     label: 'Albums'    },
+  { to: '/playlists', icon: ListMusic, label: 'Playlists' },
 ]
 
 function isActive(path) {

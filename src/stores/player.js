@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useConfigStore } from './config'
+import { scrobble } from '../api/subsonic'
 
 export const usePlayerStore = defineStore('player', () => {
   const config = useConfigStore()
@@ -19,14 +20,30 @@ export const usePlayerStore = defineStore('player', () => {
   const currentTime  = ref(0)
   const duration     = ref(0)
 
+  // scrobble tracking — reset per track
+  let scrobbleSubmitted = false
+  let scrobbleThreshold = Infinity
+
   // ── COMPUTED ──────────────────────────────────────────
   const progressPct = computed(() =>
     duration.value ? (currentTime.value / duration.value) * 100 : 0
   )
 
   // ── AUDIO EVENTS ──────────────────────────────────────
-  audio.addEventListener('timeupdate',     () => { currentTime.value = audio.currentTime })
-  audio.addEventListener('durationchange', () => { duration.value = isFinite(audio.duration) ? audio.duration : 0 })
+  audio.addEventListener('timeupdate', () => {
+    currentTime.value = audio.currentTime
+    if (!scrobbleSubmitted && audio.currentTime >= scrobbleThreshold) {
+      scrobbleSubmitted = true
+      scrobble(currentTrack.value.id, true).catch(() => {})
+    }
+  })
+  audio.addEventListener('durationchange', () => {
+    duration.value = isFinite(audio.duration) ? audio.duration : 0
+    // scrobble threshold: 50% or 4 minutes, whichever is less; minimum 30s
+    if (duration.value > 0) {
+      scrobbleThreshold = Math.max(30, Math.min(duration.value * 0.5, 240))
+    }
+  })
   audio.addEventListener('play',           () => { isPlaying.value = true })
   audio.addEventListener('pause',          () => { isPlaying.value = false })
   audio.addEventListener('ended', () => {
@@ -42,13 +59,19 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   // ── PLAYBACK ──────────────────────────────────────────
-  function playFromQueue(index) {
-    if (index < 0 || index >= queue.value.length) return
-    currentIndex.value = index
-    const track = queue.value[index]
+  function startTrack(track) {
+    scrobbleSubmitted = false
+    scrobbleThreshold = Infinity
     currentTrack.value = track
     audio.src = streamUrl(track.id)
     audio.play()
+    scrobble(track.id, false).catch(() => {})
+  }
+
+  function playFromQueue(index) {
+    if (index < 0 || index >= queue.value.length) return
+    currentIndex.value = index
+    startTrack(queue.value[index])
   }
 
   function playTrack(track, trackList = null, index = 0) {
@@ -56,9 +79,7 @@ export const usePlayerStore = defineStore('player', () => {
       queue.value = [...trackList]
       currentIndex.value = index
     }
-    currentTrack.value = track
-    audio.src = streamUrl(track.id)
-    audio.play()
+    startTrack(track)
   }
 
   function togglePlay() {

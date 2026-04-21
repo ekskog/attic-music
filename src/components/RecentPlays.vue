@@ -43,6 +43,7 @@ async function fetchScrobbles() {
       clearInterval(timer)
       timer = null
     }
+    // transient errors (network etc.) — keep polling
   }
 }
 

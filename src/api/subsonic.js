@@ -174,6 +174,12 @@ export async function getArtistInfo(id) {
   return data.artistInfo2 || {}
 }
 
+export async function scrobble(id, submission = true) {
+  const params = { id, submission }
+  if (submission) params.time = Date.now()
+  await request('scrobble', params)
+}
+
 export async function search(query) {
   const data = await request('search3', { query, artistCount: 5, albumCount: 8, songCount: 0 })
   return {
