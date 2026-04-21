@@ -60,7 +60,7 @@ src/
 - On load, the app fetches `/config.json` for server-provisioned settings (Last.fm API key, optional pre-configured server)
 - User credentials are persisted to `localStorage` under key `attic_cfg`
 - Route guards block all routes until `config.loggedIn` is true
-- In Kubernetes, an init container writes `/config.json` from the `lastfm-secret` K8s secret
+- In CI, the GHA workflow writes `public/config.json` (including `lastfmKey` from the `LASTFM_API_KEY` GitHub Actions secret) before the Docker image is built, so the key is baked into the image as a static file served by Nginx
 
 ### Subsonic API
 - All music data comes from `src/api/subsonic.js`, which wraps the Subsonic REST API
