@@ -78,24 +78,35 @@
           <!-- CONTROLS -->
           <div class="flex-shrink-0 mb-12">
             <div class="flex items-center justify-between mb-6">
+              <div class="flex flex-col items-center gap-1">
+                <button
+                  class="p-2 transition-colors"
+                  :class="player.shuffle ? 'text-amber-700' : 'text-stone-300'"
+                  @click="player.shuffle = !player.shuffle"
+                ><Shuffle :size="22" /></button>
+                <span class="text-[10px] uppercase tracking-wide" :class="player.shuffle ? 'text-amber-700' : 'text-stone-300'">shuffle</span>
+              </div>
+              <button class="p-2 text-stone-700 active:text-amber-700" @click="player.prevTrack()">
+                <SkipBack :size="32" />
+              </button>
               <button
-                class="text-2xl p-2 transition-colors"
-                :class="player.shuffle ? 'text-amber-700' : 'text-stone-300'"
-                @click="player.shuffle = !player.shuffle"
-              >⇄</button>
-              <button class="text-4xl p-2 text-stone-700 active:text-amber-700" @click="player.prevTrack()">⏮</button>
-              <button
-                class="w-16 h-16 rounded-full bg-stone-900 text-white flex items-center justify-center text-2xl active:bg-amber-700 transition-colors shadow-lg"
+                class="w-16 h-16 rounded-full bg-stone-900 text-white flex items-center justify-center active:bg-amber-700 transition-colors shadow-lg"
                 @click="player.togglePlay()"
               >
-                {{ player.isPlaying ? '⏸' : '▶' }}
+                <Pause v-if="player.isPlaying" :size="28" />
+                <Play v-else :size="28" class="translate-x-0.5" />
               </button>
-              <button class="text-4xl p-2 text-stone-700 active:text-amber-700" @click="player.nextTrack()">⏭</button>
-              <button
-                class="text-2xl p-2 transition-colors"
-                :class="player.repeat ? 'text-amber-700' : 'text-stone-300'"
-                @click="player.repeat = !player.repeat"
-              >↻</button>
+              <button class="p-2 text-stone-700 active:text-amber-700" @click="player.nextTrack()">
+                <SkipForward :size="32" />
+              </button>
+              <div class="flex flex-col items-center gap-1">
+                <button
+                  class="p-2 transition-colors"
+                  :class="player.repeat ? 'text-amber-700' : 'text-stone-300'"
+                  @click="player.repeat = !player.repeat"
+                ><Repeat :size="22" /></button>
+                <span class="text-[10px] uppercase tracking-wide" :class="player.repeat ? 'text-amber-700' : 'text-stone-300'">repeat</span>
+              </div>
             </div>
           </div>
 
@@ -108,6 +119,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import { Shuffle, Repeat, Play, Pause, SkipBack, SkipForward } from 'lucide-vue-next'
 import { usePlayerStore } from '../stores/player'
 import { coverUrl } from '../api/subsonic'
 

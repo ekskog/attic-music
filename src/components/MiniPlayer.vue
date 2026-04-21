@@ -23,13 +23,14 @@
         class="w-9 h-9 flex items-center justify-center text-stone-700 active:text-amber-700"
         @click.stop="player.togglePlay()"
       >
-        <span class="text-xl">{{ player.isPlaying ? '⏸' : '▶' }}</span>
+        <Pause v-if="player.isPlaying" :size="20" />
+        <Play v-else :size="20" class="translate-x-px" />
       </button>
       <button
         class="w-9 h-9 flex items-center justify-center text-stone-400 active:text-amber-700"
         @click.stop="player.nextTrack()"
       >
-        <span class="text-xl">⏭</span>
+        <SkipForward :size="20" />
       </button>
     </div>
 
@@ -41,6 +42,7 @@
 </template>
 
 <script setup>
+import { Play, Pause, SkipForward } from 'lucide-vue-next'
 import { usePlayerStore } from '../stores/player'
 import { coverUrl } from '../api/subsonic'
 

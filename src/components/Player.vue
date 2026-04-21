@@ -17,16 +17,27 @@
     <!-- CONTROLS -->
     <div class="flex-1 flex flex-col items-center gap-1.5">
       <div class="flex items-center gap-4">
-        <button class="ctrl" :class="{ 'text-amber-700': player.shuffle }" @click="player.shuffle = !player.shuffle" title="Shuffle">⇄</button>
-        <button class="ctrl" @click="player.prevTrack()" title="Previous">⏮</button>
+        <div class="flex flex-col items-center gap-0.5">
+          <button class="ctrl" :class="{ 'text-amber-700': player.shuffle }" @click="player.shuffle = !player.shuffle">
+            <Shuffle :size="16" />
+          </button>
+          <span class="text-[9px] uppercase tracking-widest" :class="player.shuffle ? 'text-amber-700' : 'text-stone-300'">shuffle</span>
+        </div>
+        <button class="ctrl" @click="player.prevTrack()"><SkipBack :size="18" /></button>
         <button
           class="w-9 h-9 rounded-full bg-stone-900 text-white flex items-center justify-center hover:bg-amber-700 transition-colors"
           @click="player.togglePlay()"
         >
-          {{ player.isPlaying ? '⏸' : '▶' }}
+          <Pause v-if="player.isPlaying" :size="16" />
+          <Play v-else :size="16" class="translate-x-px" />
         </button>
-        <button class="ctrl" @click="player.nextTrack()" title="Next">⏭</button>
-        <button class="ctrl" :class="{ 'text-amber-700': player.repeat }" @click="player.repeat = !player.repeat" title="Repeat">↻</button>
+        <button class="ctrl" @click="player.nextTrack()"><SkipForward :size="18" /></button>
+        <div class="flex flex-col items-center gap-0.5">
+          <button class="ctrl" :class="{ 'text-amber-700': player.repeat }" @click="player.repeat = !player.repeat">
+            <Repeat :size="16" />
+          </button>
+          <span class="text-[9px] uppercase tracking-widest" :class="player.repeat ? 'text-amber-700' : 'text-stone-300'">repeat</span>
+        </div>
       </div>
 
       <!-- PROGRESS -->
@@ -109,6 +120,7 @@
 
 <script setup>
 import { ref, nextTick } from 'vue'
+import { Shuffle, Repeat, Play, Pause, SkipBack, SkipForward } from 'lucide-vue-next'
 import { usePlayerStore } from '../stores/player'
 import { coverUrl, createPlaylist } from '../api/subsonic'
 import MiniPlayer from './MiniPlayer.vue'
