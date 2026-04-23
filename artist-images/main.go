@@ -89,6 +89,9 @@ func main() {
 	}
 	logRequests = strings.ToLower(os.Getenv("LOG_REQUESTS")) == "true"
 	buildMap(root)
+	if len(coverMap) == 0 {
+		log.Fatalf("no artist covers found in %s — NFS not ready?", root)
+	}
 
 	go func() {
 		for range time.Tick(time.Hour) {

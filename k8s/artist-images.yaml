@@ -21,6 +21,13 @@ spec:
       labels:
         app: artist-images
     spec:
+      initContainers:
+        - name: nfs-check
+          image: busybox:latest
+          command: ['sh', '-c', 'ls /media/music | grep -q . || (echo "NFS mount empty"; exit 1)']
+          volumeMounts:
+            - name: music
+              mountPath: /media/music
       containers:
         - name: artist-images
           image: ghcr.io/ekskog/artist-images:latest
