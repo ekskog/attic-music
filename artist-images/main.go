@@ -58,28 +58,33 @@ func normalize(s string) string {
 
 func buildMap(root string) {
 	fresh := map[string]string{}
-	indexDirInto(root, fresh)
-	coverMap = fresh
-	log.Printf("indexed %d artist covers from %s", len(coverMap), root)
-}
-
-func indexDirInto(dir string, m map[string]string) {
-	entries, err := os.ReadDir(dir)
+	letters, err := os.ReadDir(root)
 	if err != nil {
-		log.Printf("cannot read %q: %v", dir, err)
+		log.Printf("cannot read root %q: %v", root, err)
+		coverMap = fresh
 		return
 	}
-	for _, e := range entries {
-		if !e.IsDir() {
+	for _, letter := range letters {
+		if !letter.IsDir() {
 			continue
 		}
-		cover := filepath.Join(dir, e.Name(), "cover.jpg")
-		if _, err := os.Stat(cover); err == nil {
-			m[normalize(e.Name())] = cover
-		} else {
-			indexDirInto(filepath.Join(dir, e.Name()), m)
+		artists, err := os.ReadDir(filepath.Join(root, letter.Name()))
+		if err != nil {
+			log.Printf("cannot read %q: %v", letter.Name(), err)
+			continue
+		}
+		for _, artist := range artists {
+			if !artist.IsDir() {
+				continue
+			}
+			cover := filepath.Join(root, letter.Name(), artist.Name(), "cover.jpg")
+			if _, err := os.Stat(cover); err == nil {
+				fresh[normalize(artist.Name())] = cover
+			}
 		}
 	}
+	coverMap = fresh
+	log.Printf("indexed %d artist covers from %s", len(coverMap), root)
 }
 
 func main() {
