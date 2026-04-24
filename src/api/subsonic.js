@@ -33,7 +33,7 @@ function ensureArray(val) {
 }
 
 async function request(endpoint, params = {}) {
-  const res  = await fetch(buildUrl(endpoint, params))
+  const res  = await fetch(buildUrl(endpoint, params), { cache: 'no-store' })
   const json = await res.json()
   const data = json['subsonic-response']
   if (data.status !== 'ok') throw new Error(data.error?.message || 'API error')
