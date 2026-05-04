@@ -99,7 +99,9 @@
                 Album{{ currentAlbum.year ? ' · ' + currentAlbum.year : '' }}
               </div>
               <div class="font-serif text-xl font-semibold leading-tight mb-0.5">{{ currentAlbum.name }}</div>
-              <div class="text-sm text-stone-400 mb-3 truncate">{{ currentAlbum.artist }}</div>
+              <div class="text-sm text-stone-400 mb-3 truncate">
+                <button class="hover:text-amber-700 transition-colors" @click="openArtistByName(currentAlbum.artist, $event)">{{ currentAlbum.artist }}</button>
+              </div>
               <div class="flex gap-2">
                 <button class="bg-stone-900 text-white text-xs font-medium px-4 py-2 rounded-full hover:bg-amber-700 transition-colors" @click="playAlbumTracks">▶ Play</button>
                 <button class="border border-stone-200 text-xs px-4 py-2 rounded-full hover:border-amber-700 hover:text-amber-700 transition-colors" @click="queueAlbumTracks">+ Queue</button>
