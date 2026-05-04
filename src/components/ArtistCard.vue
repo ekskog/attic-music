@@ -22,13 +22,21 @@
 
 <script setup>
 import { ref } from 'vue'
+import { coverUrl } from '../api/subsonic'
 
 const props = defineProps({ artist: Object })
 const emit  = defineEmits(['click'])
 
-const imageUrl = ref(`/artist-images/avatar?name=${encodeURIComponent(props.artist.name)}`)
+const sidecarUrl  = `/artist-images/avatar?name=${encodeURIComponent(props.artist.name)}`
+const subsonicUrl = coverUrl(props.artist.id, 200)
+
+const imageUrl = ref(sidecarUrl)
 
 function onImgError() {
-  imageUrl.value = null
+  if (imageUrl.value === sidecarUrl) {
+    imageUrl.value = subsonicUrl
+  } else {
+    imageUrl.value = null
+  }
 }
 </script>

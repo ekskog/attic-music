@@ -99,7 +99,7 @@ func main() {
 	}
 
 	go func() {
-		for range time.Tick(time.Hour) {
+		for range time.Tick(5 * time.Minute) {
 			log.Printf("rescanning %s", root)
 			buildMap(root)
 		}
