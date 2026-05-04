@@ -70,10 +70,14 @@ src/
 
 ### Artist Images
 - All artist folders on the NFS share have a `cover.jpg` (pre-fetched externally)
-- Gonic does **not** populate `artist.coverArt` in `getArtists` — the field is always empty regardless of indexing; `getCoverArt?id=ar-xxx` is also unreliable
+- Gonic does **not** populate `artist.coverArt` in `getArtists` — the field is always empty regardless of indexing
 - A dedicated Go sidecar (`artist-images/`) serves images directly from the NFS volume, bypassing the Subsonic API entirely
-- `ArtistCard` requests `/artist-images/avatar?name=<artist>` and falls back to a letter placeholder on 404
-- The sidecar scans the music root at startup, building a normalized name → file path map; it recurses one level to handle the partition directory structure (`mp3/<letter>/<artist>/cover.jpg`)
+- Gonic does **not** serve standalone `cover.jpg` files via `getCoverArt` — it only returns embedded ID3 art; the sidecar is the authoritative source for both artist and album cover art
+- `ArtistCard` image fallback chain: sidecar (`/artist-images/avatar?name=<artist>`) → Subsonic `getCoverArt?id=<artistId>` → letter placeholder
+- Album cover fallback chain (carousel, grid, detail): Subsonic `getCoverArt?id=<albumId>` → sidecar (`/artist-images/album?artist=<artist>&album=<album>`) → 💿 placeholder
+- The artist detail view: Subsonic first, then sidecar fallback
+- The sidecar builds two maps at startup and rescans every 5 minutes: artist covers (`normalize(artist)` → path) and album covers (`normalize(artist)|normalize(album)` → path)
+- Directory structure scanned: `<root>/<letter>/<artist>/cover.jpg` (artist) and `<root>/<letter>/<artist>/<album>/cover.jpg` (album)
 - Request logging (HIT/MISS with latency) is controlled by the `LOG_REQUESTS` env var, set via ConfigMap `artist-images-config` in namespace `webapps`
 - In dev, Vite proxies `/artist-images` → `http://localhost:8081`; in production, Nginx proxies it to the `artist-images` ClusterIP service
 - Manifest: `k8s/artist-images.yaml` (ConfigMap + Deployment + Service); image: `ghcr.io/ekskog/artist-images:latest`

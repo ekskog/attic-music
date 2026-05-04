@@ -10,7 +10,8 @@ import (
 	"time"
 )
 
-var coverMap = map[string]string{}
+var coverMap      = map[string]string{}
+var albumCoverMap = map[string]string{}
 var nonAlnum = regexp.MustCompile(`[^a-z0-9]+`)
 var logRequests bool
 
@@ -57,11 +58,13 @@ func normalize(s string) string {
 
 
 func buildMap(root string) {
-	fresh := map[string]string{}
+	freshArtist := map[string]string{}
+	freshAlbum  := map[string]string{}
 	letters, err := os.ReadDir(root)
 	if err != nil {
 		log.Printf("cannot read root %q: %v", root, err)
-		coverMap = fresh
+		coverMap = freshArtist
+		albumCoverMap = freshAlbum
 		return
 	}
 	for _, letter := range letters {
@@ -77,14 +80,30 @@ func buildMap(root string) {
 			if !artist.IsDir() {
 				continue
 			}
-			cover := filepath.Join(root, letter.Name(), artist.Name(), "cover.jpg")
-			if _, err := os.Stat(cover); err == nil {
-				fresh[normalize(artist.Name())] = cover
+			artistDir := filepath.Join(root, letter.Name(), artist.Name())
+			artistCover := filepath.Join(artistDir, "cover.jpg")
+			if _, err := os.Stat(artistCover); err == nil {
+				freshArtist[normalize(artist.Name())] = artistCover
+			}
+			albums, err := os.ReadDir(artistDir)
+			if err != nil {
+				continue
+			}
+			for _, album := range albums {
+				if !album.IsDir() {
+					continue
+				}
+				albumCover := filepath.Join(artistDir, album.Name(), "cover.jpg")
+				if _, err := os.Stat(albumCover); err == nil {
+					key := normalize(artist.Name()) + "|" + normalize(album.Name())
+					freshAlbum[key] = albumCover
+				}
 			}
 		}
 	}
-	coverMap = fresh
-	log.Printf("indexed %d artist covers from %s", len(coverMap), root)
+	coverMap = freshArtist
+	albumCoverMap = freshAlbum
+	log.Printf("indexed %d artist covers, %d album covers from %s", len(coverMap), len(albumCoverMap), root)
 }
 
 func main() {
@@ -104,6 +123,30 @@ func main() {
 			buildMap(root)
 		}
 	}()
+
+	http.HandleFunc("/album", func(w http.ResponseWriter, r *http.Request) {
+		start  := time.Now()
+		artist := r.URL.Query().Get("artist")
+		album  := r.URL.Query().Get("album")
+		if artist == "" || album == "" {
+			http.Error(w, "missing artist or album param", http.StatusBadRequest)
+			return
+		}
+		key  := normalize(artist) + "|" + normalize(album)
+		path, ok := albumCoverMap[key]
+		if !ok {
+			if logRequests {
+				log.Printf("MISS  album %q / %q (%.0fms)", artist, album, float64(time.Since(start).Microseconds())/1000)
+			}
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+		http.ServeFile(w, r, path)
+		if logRequests {
+			log.Printf("HIT   album %q / %q (%.0fms)", artist, album, float64(time.Since(start).Microseconds())/1000)
+		}
+	})
 
 	http.HandleFunc("/avatar", func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
