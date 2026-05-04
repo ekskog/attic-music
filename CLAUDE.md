@@ -68,6 +68,32 @@ src/
 - Dev server proxies `/rest` → `https://gonic.ekskog.net` (see `vite.config.js`)
 - Production traffic hits the server the user logs into directly from the browser
 
+### NFS File Structure
+- Subsonic indexes media from an NFS Share. The structure of the share is:
+./mp3/<first letter in artist name>/YYYY-album_name_with_underscore, as below:
+/var/lib/media/music/mp3 $ tree | more
+.
+├── 1
+│   ├── !!!
+│   │   ├── 2013-thr_er
+│   │   │   ├── 01-01-even_when_the_water's_cold.mp3
+│   │   │   ├── 01-02-get_that_rhythm_right.mp3
+│   │   │   └── cover.jpg
+│   │   └── cover.jpg
+│   ├── 10,000_maniacs
+│   │   ├── 1983-unplugged_on_mtv_preshow
+│   │   │   ├── 01-01-how_you've_grown_take_1.mp3
+│   │   │   ├── 01-09-how_you've_grown_take_3.mp3
+│   │   │   └── cover.jpg
+│   │   └── cover.jpg
+├── a
+│   ├── abba
+│   │   ├── 1993-gold
+│   │   │   ├── 01-01-dancing_queen.mp3
+│   │   │   ├── 01-06-super_trooper.mp3
+│   │   │   └── cover.jpg
+│   │   └── cover.jpg
+
 ### Artist Images
 - All artist folders on the NFS share have a `cover.jpg` (pre-fetched externally)
 - Gonic does **not** populate `artist.coverArt` in `getArtists` — the field is always empty regardless of indexing
@@ -77,7 +103,9 @@ src/
 - Album cover fallback chain (carousel, grid, detail): Subsonic `getCoverArt?id=<albumId>` → sidecar (`/artist-images/album?artist=<artist>&album=<album>`) → 💿 placeholder
 - The artist detail view: Subsonic first, then sidecar fallback
 - The sidecar builds two maps at startup and rescans every 5 minutes: artist covers (`normalize(artist)` → path) and album covers (`normalize(artist)|normalize(album)` → path)
-- Directory structure scanned: `<root>/<letter>/<artist>/cover.jpg` (artist) and `<root>/<letter>/<artist>/<album>/cover.jpg` (album)
+- Album folders are named `YYYY-album_name_with_underscores`; the sidecar strips the leading `YYYY-` before normalizing so it matches the API album name
+- The artist folder name corresponds to the **Album Artist** mp3 tag (e.g. `bob_seger`), not the track Artist tag (e.g. `bob seger & the silver bullet band`); the frontend uses `album.albumArtist || album.artist` when building the sidecar URL
+- Directory structure scanned: `<root>/<letter>/<artist_folder>/cover.jpg` (artist) and `<root>/<letter>/<artist_folder>/YYYY-album_folder/cover.jpg` (album)
 - Request logging (HIT/MISS with latency) is controlled by the `LOG_REQUESTS` env var, set via ConfigMap `artist-images-config` in namespace `webapps`
 - In dev, Vite proxies `/artist-images` → `http://localhost:8081`; in production, Nginx proxies it to the `artist-images` ClusterIP service
 - Manifest: `k8s/artist-images.yaml` (ConfigMap + Deployment + Service); image: `ghcr.io/ekskog/artist-images:latest`

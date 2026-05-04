@@ -12,7 +12,8 @@ import (
 
 var coverMap      = map[string]string{}
 var albumCoverMap = map[string]string{}
-var nonAlnum = regexp.MustCompile(`[^a-z0-9]+`)
+var nonAlnum   = regexp.MustCompile(`[^a-z0-9]+`)
+var yearPrefix = regexp.MustCompile(`^\d{4}-`)
 var logRequests bool
 
 var articles = map[string]bool{
@@ -95,7 +96,8 @@ func buildMap(root string) {
 				}
 				albumCover := filepath.Join(artistDir, album.Name(), "cover.jpg")
 				if _, err := os.Stat(albumCover); err == nil {
-					key := normalize(artist.Name()) + "|" + normalize(album.Name())
+					albumName := yearPrefix.ReplaceAllString(album.Name(), "")
+					key := normalize(artist.Name()) + "|" + normalize(albumName)
 					freshAlbum[key] = albumCover
 				}
 			}

@@ -219,7 +219,8 @@ function onAlbumCoverError(e, album) {
   const img = e.target
   if (!img.dataset.triedSidecar) {
     img.dataset.triedSidecar = '1'
-    img.src = `/artist-images/album?artist=${encodeURIComponent(album.artist)}&album=${encodeURIComponent(album.name)}`
+    const artist = album.albumArtist || album.artist
+    img.src = `/artist-images/album?artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album.name)}`
   } else {
     img.style.display = 'none'
   }
