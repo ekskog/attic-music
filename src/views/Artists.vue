@@ -55,6 +55,8 @@
         <div class="flex items-center gap-1.5 text-xs text-stone-400 mb-3">
           <span class="cursor-pointer hover:text-amber-700 transition-colors" @click="view = 'grid'">Artists</span>
           <span class="opacity-40">›</span>
+          <span class="cursor-pointer hover:text-amber-700 transition-colors uppercase" @click="goToLetter(currentArtistLetter)">{{ currentArtistLetter }}</span>
+          <span class="opacity-40">›</span>
           <span>{{ currentArtist.name }}</span>
         </div>
         <div class="flex items-center gap-4">
@@ -100,6 +102,8 @@
       <div class="px-4 md:px-8 py-5 md:py-7 border-b border-stone-200 bg-white flex-shrink-0">
         <div class="flex items-center gap-1.5 text-xs text-stone-400 mb-2 flex-wrap">
           <span class="cursor-pointer hover:text-amber-700 transition-colors" @click="view = 'grid'">Artists</span>
+          <span class="opacity-40">›</span>
+          <span class="cursor-pointer hover:text-amber-700 transition-colors uppercase" @click="goToLetter(currentArtistLetter)">{{ currentArtistLetter }}</span>
           <span class="opacity-40">›</span>
           <span class="cursor-pointer hover:text-amber-700 transition-colors" @click="view = 'artist'">{{ currentArtist.name }}</span>
           <span class="opacity-40">›</span>
@@ -176,6 +180,24 @@ const currentArtist           = ref(null)
 const currentArtistAlbums     = ref([])
 const loadingArtist           = ref(false)
 const artistDetailImageUrl    = ref(null)
+const currentArtistLetter     = ref(null)
+
+function getArtistLetter(name) {
+  const first = name?.[0]?.toLowerCase()
+  return (first && first >= 'a' && first <= 'z') ? first : '#'
+}
+
+function goToLetter(letter) {
+  view.value = 'grid'
+  nextTick(() => {
+    expandedGroups[letter] = true
+    nextTick(() => {
+      const el = groupRefs[letter]
+      const container = scrollContainer.value
+      if (el && container) container.scrollTo({ top: el.offsetTop - 8, behavior: 'smooth' })
+    })
+  })
+}
 
 const currentAlbum = ref(null)
 const albumTracks  = ref([])
@@ -210,6 +232,7 @@ function toggleAndScroll(name) {
 
 async function openArtist(artist) {
   currentArtist.value = { ...artist }
+  currentArtistLetter.value = getArtistLetter(artist.name)
   artistDetailImageUrl.value = null
   view.value = 'artist'
   loadingArtist.value = true
@@ -266,6 +289,7 @@ async function openArtistById(id) {
   try {
     const data = await getArtist(id)
     currentArtist.value        = data.info
+    currentArtistLetter.value  = getArtistLetter(data.info?.name)
     currentArtistAlbums.value  = data.albums
     const coverArtId = data.info?.coverArt || id
     artistDetailImageUrl.value = coverUrl(coverArtId, 112)

@@ -6,7 +6,7 @@
       <div class="px-6 py-6 border-b border-stone-200 bg-white flex-shrink-0">
         <h1 class="font-serif text-3xl font-semibold">Albums</h1>
       </div>
-      <div class="flex-1 overflow-y-auto pb-40 md:pb-24">
+      <div class="flex-1 min-h-0 overflow-y-auto pb-40 md:pb-24">
 
         <!-- RECENTLY ADDED CAROUSEL -->
         <div v-if="recentAlbums.length" class="px-4 pt-5 pb-4 border-b border-stone-100">
@@ -86,7 +86,7 @@
         </div>
         <h1 class="font-serif text-3xl font-semibold">{{ currentAlbum.name }}</h1>
       </div>
-      <div class="flex-1 overflow-y-auto px-4 py-4 pb-40 md:pb-24">
+      <div class="flex-1 min-h-0 overflow-y-auto px-4 py-4 pb-40 md:pb-24">
         <div v-if="loading" class="flex items-center justify-center py-24 text-stone-400 text-sm">Loading…</div>
         <div v-else>
           <div class="flex gap-4 mb-6 items-end">
