@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col h-full overflow-hidden">
+  <div class="flex flex-col flex-1 min-h-0 overflow-hidden">
 
     <!-- ALBUM LIST -->
     <template v-if="!currentAlbum">

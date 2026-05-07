@@ -129,9 +129,18 @@ export async function getAlbum(id) {
   }
 }
 
-export async function getAlbumList(size = 500) {
-  const data = await request('getAlbumList2', { type: 'alphabeticalByName', size })
-  return ensureArray(data.albumList2?.album)
+export async function getAlbumList() {
+  const all = []
+  let offset = 0
+  const size = 500
+  while (true) {
+    const data = await request('getAlbumList2', { type: 'alphabeticalByName', size, offset })
+    const page = ensureArray(data.albumList2?.album)
+    all.push(...page)
+    if (page.length < size) break
+    offset += size
+  }
+  return all
 }
 
 export async function getNewestAlbums(size = 12) {
