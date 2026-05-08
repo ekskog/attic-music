@@ -239,18 +239,12 @@ async function openArtist(artist) {
   try {
     const data = await getArtist(artist.id)
     currentArtistAlbums.value = data.albums
-    const coverArtId = data.info?.coverArt || artist.coverArt || artist.id
-    artistDetailImageUrl.value = coverUrl(coverArtId, 112)
+    artistDetailImageUrl.value = `/artist-images/avatar?name=${encodeURIComponent(artist.name)}`
   } finally { loadingArtist.value = false }
 }
 
 function onArtistDetailImgError() {
-  const sidecarUrl = `/artist-images/avatar?name=${encodeURIComponent(currentArtist.value?.name)}`
-  if (artistDetailImageUrl.value !== sidecarUrl) {
-    artistDetailImageUrl.value = sidecarUrl
-  } else {
-    artistDetailImageUrl.value = null
-  }
+  artistDetailImageUrl.value = null
 }
 
 async function openAlbum(album) {
@@ -291,8 +285,7 @@ async function openArtistById(id) {
     currentArtist.value        = data.info
     currentArtistLetter.value  = getArtistLetter(data.info?.name)
     currentArtistAlbums.value  = data.albums
-    const coverArtId = data.info?.coverArt || id
-    artistDetailImageUrl.value = coverUrl(coverArtId, 112)
+    artistDetailImageUrl.value = `/artist-images/avatar?name=${encodeURIComponent(data.info?.name)}`
   } finally { loadingArtist.value = false }
 }
 
