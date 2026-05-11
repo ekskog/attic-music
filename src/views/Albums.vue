@@ -44,7 +44,7 @@
 
         <!-- ALL ALBUMS GRID -->
         <div class="px-4 py-4">
-          <div v-if="loading" class="flex items-center justify-center py-24 text-stone-400 text-sm">Loading…</div>
+          <div v-if="loading && !albums.length" class="flex items-center justify-center py-24 text-stone-400 text-sm">Loading…</div>
           <div v-else-if="!albums.length" class="flex flex-col items-center justify-center py-24 text-stone-400 gap-2">
             <span class="text-4xl">💿</span>
             <span class="font-serif text-lg">No albums found</span>
@@ -71,6 +71,8 @@
               </div>
             </div>
           </div>
+          <div ref="sentinel" class="h-8"></div>
+          <div v-if="loading && albums.length" class="flex items-center justify-center py-4 text-stone-400 text-sm">Loading…</div>
         </div>
 
       </div>
@@ -127,10 +129,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePlayerStore } from '../stores/player'
-import { getAlbumList, getNewestAlbums, getAlbum, coverUrl, getArtists } from '../api/subsonic'
+import { getAlbumPage, getNewestAlbums, getAlbum, coverUrl, getArtists } from '../api/subsonic'
 import TrackItem from '../components/TrackItem.vue'
 
 const route  = useRoute()
@@ -142,6 +144,12 @@ const albums       = ref([])
 const recentAlbums = ref([])
 const currentAlbum = ref(null)
 const albumTracks  = ref([])
+
+const sentinel   = ref(null)
+const allLoaded  = ref(false)
+const pageSize   = 100
+let   pageOffset = 0
+let   observer   = null
 
 const carousel      = ref(null)
 const canScrollLeft  = ref(false)
@@ -165,9 +173,34 @@ async function loadRecent() {
 }
 
 async function loadAlbums() {
+  albums.value = []
+  allLoaded.value = false
+  pageOffset = 0
+  await loadMore()
+  await nextTick()
+  setupObserver()
+}
+
+async function loadMore() {
+  if (loading.value || allLoaded.value) return
   loading.value = true
-  try { albums.value = await getAlbumList() }
-  finally { loading.value = false }
+  try {
+    const page = await getAlbumPage(pageSize, pageOffset)
+    albums.value.push(...page)
+    if (page.length < pageSize) allLoaded.value = true
+    else pageOffset += pageSize
+  } finally {
+    loading.value = false
+  }
+}
+
+function setupObserver() {
+  if (observer) observer.disconnect()
+  if (!sentinel.value) return
+  observer = new IntersectionObserver(entries => {
+    if (entries[0].isIntersecting) loadMore()
+  }, { threshold: 0.1 })
+  observer.observe(sentinel.value)
 }
 
 async function openAlbum(album) {
@@ -236,6 +269,10 @@ onMounted(async () => {
     if (album) openAlbum(album)
     else openAlbumById(route.params.id)
   }
+})
+
+onUnmounted(() => {
+  if (observer) observer.disconnect()
 })
 
 async function openAlbumById(id) {
