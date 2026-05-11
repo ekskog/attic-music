@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useConfigStore } from './config'
-import { scrobble } from '../api/subsonic'
+import { scrobble, coverUrl } from '../api/subsonic'
 
 export const usePlayerStore = defineStore('player', () => {
   const config = useConfigStore()
@@ -36,6 +36,15 @@ export const usePlayerStore = defineStore('player', () => {
       scrobbleSubmitted = true
       scrobble(currentTrack.value.id, true).catch(() => {})
     }
+    if ('mediaSession' in navigator && duration.value > 0) {
+      try {
+        navigator.mediaSession.setPositionState({
+          duration:     duration.value,
+          playbackRate: audio.playbackRate,
+          position:     audio.currentTime,
+        })
+      } catch (_) {}
+    }
   })
   audio.addEventListener('durationchange', () => {
     duration.value = isFinite(audio.duration) ? audio.duration : 0
@@ -43,8 +52,14 @@ export const usePlayerStore = defineStore('player', () => {
       scrobbleThreshold = Math.max(30, Math.min(duration.value * 0.5, 240))
     }
   })
-  audio.addEventListener('play',           () => { isPlaying.value = true })
-  audio.addEventListener('pause',          () => { isPlaying.value = false })
+  audio.addEventListener('play',  () => {
+    isPlaying.value = true
+    if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing'
+  })
+  audio.addEventListener('pause', () => {
+    isPlaying.value = false
+    if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused'
+  })
   audio.addEventListener('ended', () => {
     if (repeat.value) { audio.currentTime = 0; audio.play() }
     else nextTrack()
@@ -65,6 +80,16 @@ export const usePlayerStore = defineStore('player', () => {
     audio.src = streamUrl(track.id)
     audio.play().catch(e => { if (e.name !== 'AbortError') console.error('[player] play failed:', e) })
     scrobble(track.id, false).catch(() => {})
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title:   track.title  || '',
+        artist:  track.artist || '',
+        album:   track.album  || '',
+        artwork: track.coverArt
+          ? [{ src: coverUrl(track.coverArt, 512), sizes: '512x512', type: 'image/jpeg' }]
+          : [],
+      })
+    }
   }
 
   function playFromQueue(index) {
@@ -117,6 +142,17 @@ export const usePlayerStore = defineStore('player', () => {
     if (!secs && secs !== 0) return '—'
     const s = Math.floor(secs)
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+  }
+
+  // ── MEDIA SESSION ACTIONS ─────────────────────────────
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.setActionHandler('play',          () => audio.play())
+    navigator.mediaSession.setActionHandler('pause',         () => audio.pause())
+    navigator.mediaSession.setActionHandler('nexttrack',     () => nextTrack())
+    navigator.mediaSession.setActionHandler('previoustrack', () => prevTrack())
+    navigator.mediaSession.setActionHandler('seekto', ({ seekTime }) => {
+      if (seekTime != null) audio.currentTime = seekTime
+    })
   }
 
   return {
