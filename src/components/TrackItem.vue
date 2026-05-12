@@ -7,7 +7,7 @@
   >
     <div class="text-xs text-stone-400 text-center">
       <span v-if="isPlaying">♪</span>
-      <span v-else>{{ track.track || index + 1 }}</span>
+      <span v-else>{{ removable ? index + 1 : (track.track || index + 1) }}</span>
     </div>
     <div class="truncate font-medium text-sm">{{ track.title }}</div>
     <div class="text-xs text-stone-400 text-right">{{ fmt(track.duration) }}</div>

@@ -14,7 +14,10 @@
     <!-- TRACK INFO -->
     <div class="flex-1 overflow-hidden">
       <div class="text-sm font-medium truncate">{{ player.currentTrack.title }}</div>
-      <div class="text-xs text-stone-400 truncate">{{ player.currentTrack.artist }}</div>
+      <div class="text-xs text-stone-400 truncate">
+        {{ player.currentTrack.artist }}
+        <span v-if="player.currentTrack.album"> · {{ player.currentTrack.album }}</span>
+      </div>
     </div>
 
     <!-- CONTROLS -->

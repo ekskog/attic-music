@@ -58,6 +58,7 @@
           <div class="flex-shrink-0 mb-6">
             <div class="text-xl font-semibold truncate">{{ player.currentTrack?.title }}</div>
             <div class="text-stone-400 truncate mt-0.5">{{ player.currentTrack?.artist }}</div>
+            <div v-if="player.currentTrack?.album" class="text-sm text-stone-300 truncate mt-0.5">{{ player.currentTrack.album }}</div>
           </div>
 
           <!-- PROGRESS -->
