@@ -36,6 +36,11 @@
             class="w-full text-left px-3 py-2 text-sm text-stone-500 hover:bg-stone-50 transition-colors"
             @click.stop="addToQueue"
           >Add to queue</button>
+          <button
+            v-if="removable"
+            class="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+            @click.stop="removeFromPlaylist"
+          >Remove from playlist</button>
         </div>
       </div>
     </div>
@@ -48,11 +53,12 @@ import { usePlayerStore } from '../stores/player'
 import { usePlaylistStore } from '../stores/playlist'
 
 const props = defineProps({
-  track: { type: Object, required: true },
-  index: { type: Number, required: true },
+  track:    { type: Object,  required: true },
+  index:    { type: Number,  required: true },
+  removable: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['play', 'queue'])
+const emit = defineEmits(['play', 'queue', 'remove'])
 
 const player  = usePlayerStore()
 const plStore = usePlaylistStore()
@@ -82,6 +88,11 @@ async function addTo(pl) {
 
 function addToQueue() {
   player.addToQueue(props.track)
+  closeMenu()
+}
+
+function removeFromPlaylist() {
+  emit('remove', props.index)
   closeMenu()
 }
 

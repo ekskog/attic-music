@@ -77,8 +77,10 @@
               v-for="(track, i) in playlistTracks" :key="track.id"
               :track="track"
               :index="i"
+              :removable="true"
               @play="player.playTrack(track, playlistTracks, i)"
               @queue="player.addToQueue(track)"
+              @remove="removeTrack"
             />
           </template>
         </div>
@@ -92,7 +94,7 @@
 import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePlayerStore } from '../stores/player'
-import { getPlaylists, getPlaylist, deletePlaylist, coverUrl } from '../api/subsonic'
+import { getPlaylists, getPlaylist, deletePlaylist, updatePlaylist, coverUrl } from '../api/subsonic'
 import TrackItem from '../components/TrackItem.vue'
 
 const route  = useRoute()
@@ -132,6 +134,11 @@ function playTracks() {
 
 function queueTracks() {
   player.queue.push(...playlistTracks.value)
+}
+
+async function removeTrack(index) {
+  await updatePlaylist(currentPlaylist.value.id, { songIndexesToRemove: [index] })
+  playlistTracks.value.splice(index, 1)
 }
 
 async function confirmDelete() {
