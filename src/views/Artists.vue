@@ -24,6 +24,45 @@
         </div>
       </div>
       <div ref="scrollContainer" class="flex-1 overflow-y-auto px-6 py-4 pb-40 md:pb-24">
+
+        <!-- Recently Added -->
+        <div v-if="recentArtists.length" class="mb-8">
+          <h2 class="font-serif text-xl font-semibold mb-3">Recently Added</h2>
+          <div class="flex gap-3 overflow-x-auto pb-2" style="scrollbar-width:none;-ms-overflow-style:none">
+            <div
+              v-for="artist in recentArtists" :key="artist.id"
+              class="flex-none w-24 cursor-pointer group"
+              @click="openArtist(artist)"
+            >
+              <div class="aspect-square bg-stone-100 rounded-xl overflow-hidden mb-2 transition-transform duration-200 group-hover:scale-[1.03] relative">
+                <div class="w-full h-full flex items-center justify-center font-serif text-3xl font-semibold text-stone-300 select-none">{{ artist.name[0]?.toUpperCase() }}</div>
+                <img :src="`/artist-images/avatar?name=${encodeURIComponent(artist.name)}`" :alt="artist.name" class="absolute inset-0 w-full h-full object-cover" @error="e => e.target.style.display='none'" />
+              </div>
+              <div class="text-sm font-medium truncate leading-tight">{{ artist.name }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Discover Artists -->
+        <div v-if="discoverArtists.length" class="mb-8">
+          <h2 class="font-serif text-xl font-semibold mb-3">Discover Artists</h2>
+          <div class="flex gap-3 overflow-x-auto pb-2" style="scrollbar-width:none;-ms-overflow-style:none">
+            <div
+              v-for="artist in discoverArtists" :key="artist.id"
+              class="flex-none w-24 cursor-pointer group"
+              @click="openArtist(artist)"
+            >
+              <div class="aspect-square bg-stone-100 rounded-xl overflow-hidden mb-2 transition-transform duration-200 group-hover:scale-[1.03] relative">
+                <div class="w-full h-full flex items-center justify-center font-serif text-3xl font-semibold text-stone-300 select-none">{{ artist.name[0]?.toUpperCase() }}</div>
+                <img :src="`/artist-images/avatar?name=${encodeURIComponent(artist.name)}`" :alt="artist.name" class="absolute inset-0 w-full h-full object-cover" @error="e => e.target.style.display='none'" />
+              </div>
+              <div class="text-sm font-medium truncate leading-tight">{{ artist.name }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="recentArtists.length || discoverArtists.length" class="border-b border-stone-200 mb-6"></div>
+
         <div v-if="loading" class="flex items-center justify-center py-24 text-stone-400 text-sm">Loading…</div>
         <template v-else>
           <template v-for="group in artistIndex" :key="group.name">
@@ -154,7 +193,7 @@
 import { ref, reactive, nextTick, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePlayerStore } from '../stores/player'
-import { getArtists, getArtist, getAlbum, coverUrl } from '../api/subsonic'
+import { getArtists, getArtist, getAlbum, coverUrl, getNewestAlbums } from '../api/subsonic'
 import TrackItem  from '../components/TrackItem.vue'
 import ArtistCard from '../components/ArtistCard.vue'
 
@@ -199,6 +238,9 @@ function goToLetter(letter) {
   })
 }
 
+const recentArtists  = ref([])
+const discoverArtists = ref([])
+
 const currentAlbum = ref(null)
 const albumTracks  = ref([])
 
@@ -210,10 +252,11 @@ async function loadArtists() {
       expandedGroups[group.name] = false
     }
     artistIndex.value = index
+    const all = index.flatMap(g => g.artist)
+    discoverArtists.value = [...all].sort(() => Math.random() - 0.5).slice(0, 20)
   } finally {
     loading.value = false
   }
-
 }
 
 function toggleAndScroll(name) {
@@ -295,7 +338,17 @@ watch(() => route.params.id, (id) => {
 })
 
 onMounted(async () => {
-  await loadArtists()
+  const [, newestAlbums] = await Promise.all([loadArtists(), getNewestAlbums(100)])
+  const seen = new Set()
+  const artists = []
+  for (const album of newestAlbums) {
+    if (album.artistId && !seen.has(album.artistId)) {
+      seen.add(album.artistId)
+      artists.push({ id: album.artistId, name: album.albumArtist || album.artist })
+      if (artists.length >= 20) break
+    }
+  }
+  recentArtists.value = artists
   if (route.params.id) openArtistById(route.params.id)
 })
 </script>
