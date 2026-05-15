@@ -69,9 +69,8 @@
 
           <div v-if="!playlistTracks.length" class="text-sm text-stone-400 py-8 text-center">This playlist is empty</div>
           <template v-else>
-            <div class="grid gap-2 text-xs uppercase tracking-widest text-stone-400 px-3 pb-2 border-b border-stone-200 mb-1"
-              style="grid-template-columns: 28px 1fr 44px 28px">
-              <span class="text-center">#</span><span>Title</span><span>Time</span><span></span>
+            <div class="grid gap-2 text-xs uppercase tracking-widest text-stone-400 px-3 pb-2 border-b border-stone-200 mb-1 [grid-template-columns:28px_1fr_44px_28px] md:[grid-template-columns:28px_1fr_1fr_44px_28px]">
+              <span class="text-center">#</span><span>Title</span><span class="hidden md:block">Artist</span><span>Time</span><span></span>
             </div>
             <TrackItem
               v-for="(track, i) in playlistTracks" :key="track.id"

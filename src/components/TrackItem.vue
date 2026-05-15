@@ -1,15 +1,18 @@
 <template>
   <div
-    class="grid gap-2 px-3 py-3 rounded-lg cursor-pointer items-center text-sm transition-colors active:bg-white group"
+    class="grid gap-2 px-3 py-3 rounded-lg cursor-pointer items-center text-sm transition-colors active:bg-white group [grid-template-columns:28px_1fr_44px_28px] md:[grid-template-columns:28px_1fr_1fr_44px_28px]"
     :class="{ 'text-amber-700': isPlaying }"
-    style="grid-template-columns: 28px 1fr 44px 28px"
     @click="emit('play')"
   >
     <div class="text-xs text-stone-400 text-center">
       <span v-if="isPlaying">♪</span>
       <span v-else>{{ removable ? index + 1 : (track.track || index + 1) }}</span>
     </div>
-    <div class="truncate font-medium text-sm">{{ track.title }}</div>
+    <div class="min-w-0">
+      <div class="truncate font-medium text-sm">{{ track.title }}</div>
+      <div v-if="track.artist" class="truncate text-xs text-stone-400 mt-0.5 md:hidden">{{ track.artist }}</div>
+    </div>
+    <div class="hidden md:block truncate text-sm text-stone-400">{{ track.artist }}</div>
     <div class="text-xs text-stone-400 text-right">{{ fmt(track.duration) }}</div>
 
     <div class="relative justify-self-center">
