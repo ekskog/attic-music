@@ -94,7 +94,7 @@
         <div class="flex items-center gap-1.5 text-xs text-stone-400 mb-3">
           <span class="cursor-pointer hover:text-amber-700 transition-colors" @click="view = 'grid'">Artists</span>
           <span class="opacity-40">›</span>
-          <span class="cursor-pointer hover:text-amber-700 transition-colors uppercase" @click="goToLetter(currentArtistLetter)">{{ currentArtistLetter }}</span>
+          <span class="cursor-pointer hover:text-amber-700 transition-colors" @click="goToLetter(currentArtistLetter)">{{ currentArtistLetter }}</span>
           <span class="opacity-40">›</span>
           <span>{{ currentArtist.name }}</span>
         </div>
@@ -130,7 +130,9 @@
               </div>
             </div>
             <div class="text-xs font-medium truncate leading-tight">{{ album.name }}</div>
-            <div class="text-xs text-stone-400 mt-0.5">{{ album.year || '' }}</div>
+            <div class="text-xs text-stone-400 mt-0.5">
+              {{ [album.year, album.songCount ? album.songCount + ' tracks' : ''].filter(Boolean).join(' · ') }}
+            </div>
           </div>
         </div>
       </div>
@@ -142,7 +144,7 @@
         <div class="flex items-center gap-1.5 text-xs text-stone-400 mb-2 flex-wrap">
           <span class="cursor-pointer hover:text-amber-700 transition-colors" @click="view = 'grid'">Artists</span>
           <span class="opacity-40">›</span>
-          <span class="cursor-pointer hover:text-amber-700 transition-colors uppercase" @click="goToLetter(currentArtistLetter)">{{ currentArtistLetter }}</span>
+          <span class="cursor-pointer hover:text-amber-700 transition-colors" @click="goToLetter(currentArtistLetter)">{{ currentArtistLetter }}</span>
           <span class="opacity-40">›</span>
           <span class="cursor-pointer hover:text-amber-700 transition-colors" @click="view = 'artist'">{{ currentArtist.name }}</span>
           <span class="opacity-40">›</span>
