@@ -120,6 +120,16 @@ src/
 - `playlist.js` store caches the playlist list (fetched once on first use); `addTrack(playlistId, trackId)` calls `updatePlaylist` to append a song
 - `TrackItem`'s `+` button opens an inline dropdown listing playlists plus an "Add to queue" option — no view changes required; the dropdown is self-contained in the component
 
+### TrackItem
+- `TrackItem.vue` is used in both album detail (`Artists.vue`) and playlist detail (`Playlists.vue`)
+- On mobile: artist shown as a subtitle line below the track title
+- On desktop (`md:`): artist shown in a dedicated second column; grid is `28px 1fr 1fr 44px 28px` (# / Title / Artist / Time / action)
+- Header rows in `Artists.vue` and `Playlists.vue` use the same responsive grid template to stay aligned
+
+### Artist Detail
+- Album cards show year and track count (`album.songCount` from the `getArtist` response) as `1967 · 13 tracks`
+- Breadcrumb letter (e.g. `t` for The Beatles) is stored and displayed lowercase; do not apply `uppercase` CSS to it
+
 ### Responsive Layout
 - Desktop: sidebar + main content + footer player
 - Mobile: full-width content + mini player + full-screen player modal + bottom nav

@@ -223,7 +223,8 @@ const artistDetailImageUrl    = ref(null)
 const currentArtistLetter     = ref(null)
 
 function getArtistLetter(name) {
-  const first = name?.[0]?.toLowerCase()
+  const stripped = name?.replace(/^(the|a|an)\s+/i, '') ?? name
+  const first = stripped?.[0]?.toLowerCase()
   return (first && first >= 'a' && first <= 'z') ? first : '#'
 }
 
@@ -251,6 +252,7 @@ async function loadArtists() {
     const index = await getArtists()
     for (const group of index) {
       expandedGroups[group.name] = false
+      for (const artist of group.artist) artist._letter = group.name
     }
     artistIndex.value = index
     const all = index.flatMap(g => g.artist)
@@ -276,7 +278,7 @@ function toggleAndScroll(name) {
 
 async function openArtist(artist) {
   currentArtist.value = { ...artist }
-  currentArtistLetter.value = getArtistLetter(artist.name)
+  currentArtistLetter.value = artist._letter || getArtistLetter(artist.name)
   artistDetailImageUrl.value = null
   view.value = 'artist'
   loadingArtist.value = true
