@@ -151,6 +151,18 @@ Multi-stage build: Node 22-Alpine compiles the app, Nginx Alpine serves `dist/`.
 ### Kubernetes
 Manifests live in `k8s/`. The deployment runs in namespace `webapps` and pulls from `ghcr.io/ekskog/attic-music:latest`. An init container generates `/config.json` from the `lastfm-secret` K8s secret before the Nginx container starts.
 
+### Lyrics
+- Source: **LRCLIB** (`https://lrclib.net/api/get`) — free, no auth, CORS-enabled; no proxy needed
+- `src/api/lyrics.js` exports `fetchLyrics(track)`: queries by artist + title + album + duration; returns `{ plain, synced }` or `null` if not found
+- Synced lyrics are parsed from LRC format (`[mm:ss.xx] text`) into `[{ time, text }]` arrays; active line is derived from `player.currentTime`
+- In-memory cache keyed by track ID — fetched on demand, never proactively
+- **Mobile (FullPlayer)**: Art / Lyrics pill toggle replaces the album art section with a scrollable lyrics view; current line auto-scrolls into view
+- **Desktop (Player)**: "Lyrics" button next to "Queue" opens a `w-72` panel; mutually exclusive with the queue panel
+
+## TODO
+
+- [ ] Lyrics: test with a broad range of tracks; consider adding a "not instrumental" check (`data.instrumental === false` from LRCLIB response)
+
 ## Conventions
 
 - All components use `<script setup>` — no Options API

@@ -41,8 +41,22 @@
         <!-- PLAYER VIEW -->
         <template v-else>
 
+          <!-- ART / LYRICS TOGGLE -->
+          <div class="flex justify-center gap-1 mb-3 flex-shrink-0">
+            <button
+              class="px-4 py-1 rounded-full text-xs font-medium transition-colors"
+              :class="lyricsView ? 'bg-stone-100 text-stone-400' : 'bg-stone-900 text-white'"
+              @click="lyricsView = false"
+            >Art</button>
+            <button
+              class="px-4 py-1 rounded-full text-xs font-medium transition-colors"
+              :class="lyricsView ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-400'"
+              @click="openLyrics"
+            >Lyrics</button>
+          </div>
+
           <!-- ALBUM ART -->
-          <div class="flex-1 flex items-center justify-center py-4">
+          <div v-if="!lyricsView" class="flex-1 flex items-center justify-center py-2">
             <div class="w-full max-w-xs aspect-square bg-amber-50 overflow-hidden shadow-2xl rounded-sm">
               <img
                 v-if="player.currentTrack?.coverArt"
@@ -52,6 +66,22 @@
               />
               <div v-else class="w-full h-full flex items-center justify-center text-8xl">🎵</div>
             </div>
+          </div>
+
+          <!-- LYRICS PANEL -->
+          <div v-else class="flex-1 overflow-y-auto py-2" ref="lyricsEl">
+            <div v-if="lyricsLoading" class="flex items-center justify-center h-full text-stone-300 text-sm">Loading…</div>
+            <div v-else-if="!lyrics" class="flex items-center justify-center h-full text-stone-300 text-sm">No lyrics found</div>
+            <template v-else-if="lyrics.synced">
+              <p
+                v-for="(line, i) in lyrics.synced"
+                :key="i"
+                :ref="el => { if (el) lineEls[i] = el }"
+                class="text-center py-1 text-sm leading-relaxed transition-all duration-300"
+                :class="i === activeLine ? 'text-stone-900 font-semibold text-base' : 'text-stone-300'"
+              >{{ line.text }}</p>
+            </template>
+            <p v-else class="text-sm text-stone-500 leading-relaxed whitespace-pre-wrap text-center">{{ lyrics.plain }}</p>
           </div>
 
           <!-- TRACK INFO -->
@@ -119,10 +149,11 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { Shuffle, Repeat, Play, Pause, SkipBack, SkipForward } from 'lucide-vue-next'
 import { usePlayerStore } from '../stores/player'
 import { coverUrl } from '../api/subsonic'
+import { fetchLyrics } from '../api/lyrics'
 
 const props = defineProps({
   show: { type: Boolean, required: true }
@@ -133,6 +164,44 @@ const emit = defineEmits(['collapse'])
 const player     = usePlayerStore()
 const progressEl = ref(null)
 const showQueue  = ref(false)
+const lyricsView = ref(false)
+const lyrics     = ref(null)
+const lyricsLoading = ref(false)
+const lyricsEl   = ref(null)
+const lineEls    = ref([])
+
+const activeLine = computed(() => {
+  if (!lyrics.value?.synced) return -1
+  let idx = 0
+  for (let i = 0; i < lyrics.value.synced.length; i++) {
+    if (lyrics.value.synced[i].time <= player.currentTime) idx = i
+  }
+  return idx
+})
+
+watch(activeLine, async (idx) => {
+  if (idx < 0) return
+  await nextTick()
+  lineEls.value[idx]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+})
+
+watch(() => player.currentTrack?.id, () => {
+  lyrics.value = null
+  lineEls.value = []
+  if (lyricsView.value) loadLyrics()
+})
+
+async function openLyrics() {
+  lyricsView.value = true
+  if (!lyrics.value && player.currentTrack) await loadLyrics()
+}
+
+async function loadLyrics() {
+  lyricsLoading.value = true
+  lineEls.value = []
+  try { lyrics.value = await fetchLyrics(player.currentTrack) }
+  finally { lyricsLoading.value = false }
+}
 
 function handleSeek(event) {
   player.seek(event, progressEl.value)

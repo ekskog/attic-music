@@ -61,8 +61,13 @@
     <div class="w-40 flex items-center justify-end gap-2 flex-shrink-0">
       <button
         class="text-xs border border-stone-200 px-2.5 py-1.5 rounded text-stone-400 hover:border-amber-700 hover:text-amber-700 hover:bg-amber-50 transition-all"
+        :class="{ 'border-amber-700 text-amber-700 bg-amber-50': showLyrics }"
+        @click="toggleLyrics"
+      >Lyrics</button>
+      <button
+        class="text-xs border border-stone-200 px-2.5 py-1.5 rounded text-stone-400 hover:border-amber-700 hover:text-amber-700 hover:bg-amber-50 transition-all"
         :class="{ 'border-amber-700 text-amber-700 bg-amber-50': showQueue }"
-        @click="showQueue = !showQueue"
+        @click="showQueue = !showQueue; showLyrics = false"
       >
         Queue{{ player.queue.length ? ` (${player.queue.length})` : '' }}
       </button>
@@ -111,6 +116,29 @@
     </Transition>
   </footer>
 
+  <!-- DESKTOP LYRICS PANEL -->
+  <Transition name="queue">
+    <div v-if="showLyrics && player.currentTrack" class="fixed bottom-20 right-0 w-72 max-h-96 bg-white border border-stone-200 border-b-0 flex flex-col shadow-lg z-40">
+      <div class="px-4 py-3 border-b border-stone-200 flex-shrink-0">
+        <span class="text-xs font-medium uppercase tracking-widest">Lyrics</span>
+      </div>
+      <div class="overflow-y-auto flex-1 px-4 py-3" ref="lyricsEl">
+        <div v-if="lyricsLoading" class="text-xs text-stone-300 text-center py-8">Loading…</div>
+        <div v-else-if="!lyrics" class="text-xs text-stone-300 text-center py-8">No lyrics found</div>
+        <template v-else-if="lyrics.synced">
+          <p
+            v-for="(line, i) in lyrics.synced"
+            :key="i"
+            :ref="el => { if (el) lineEls[i] = el }"
+            class="text-sm leading-relaxed py-0.5 transition-all duration-300"
+            :class="i === activeLine ? 'text-stone-900 font-semibold' : 'text-stone-300'"
+          >{{ line.text }}</p>
+        </template>
+        <p v-else class="text-sm text-stone-500 leading-relaxed whitespace-pre-wrap">{{ lyrics.plain }}</p>
+      </div>
+    </div>
+  </Transition>
+
   <!-- MOBILE MINI PLAYER -->
   <MiniPlayer @expand="fullPlayerOpen = true" />
 
@@ -122,10 +150,11 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { Shuffle, Repeat, Play, Pause, SkipBack, SkipForward } from 'lucide-vue-next'
 import { usePlayerStore } from '../stores/player'
 import { coverUrl, createPlaylist } from '../api/subsonic'
+import { fetchLyrics } from '../api/lyrics'
 import MiniPlayer from './MiniPlayer.vue'
 import FullPlayer from './FullPlayer.vue'
 import BottomNav  from './BottomNav.vue'
@@ -134,6 +163,45 @@ const player         = usePlayerStore()
 const showQueue      = ref(false)
 const fullPlayerOpen = ref(false)
 const progressEl     = ref(null)
+const showLyrics     = ref(false)
+const lyrics         = ref(null)
+const lyricsLoading  = ref(false)
+const lyricsEl       = ref(null)
+const lineEls        = ref([])
+
+const activeLine = computed(() => {
+  if (!lyrics.value?.synced) return -1
+  let idx = 0
+  for (let i = 0; i < lyrics.value.synced.length; i++) {
+    if (lyrics.value.synced[i].time <= player.currentTime) idx = i
+  }
+  return idx
+})
+
+watch(activeLine, async (idx) => {
+  if (idx < 0) return
+  await nextTick()
+  lineEls.value[idx]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+})
+
+watch(() => player.currentTrack?.id, () => {
+  lyrics.value = null
+  lineEls.value = []
+  if (showLyrics.value) loadLyrics()
+})
+
+async function toggleLyrics() {
+  showLyrics.value = !showLyrics.value
+  showQueue.value = false
+  if (showLyrics.value && !lyrics.value && player.currentTrack) await loadLyrics()
+}
+
+async function loadLyrics() {
+  lyricsLoading.value = true
+  lineEls.value = []
+  try { lyrics.value = await fetchLyrics(player.currentTrack) }
+  finally { lyricsLoading.value = false }
+}
 
 const savingPlaylist   = ref(false)
 const playlistName     = ref('')
