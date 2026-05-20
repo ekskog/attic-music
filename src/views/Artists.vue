@@ -61,26 +61,7 @@
           </div>
         </div>
 
-        <!-- Discover Albums -->
-        <div v-if="discoverAlbums.length" class="mb-8">
-          <h2 class="font-serif text-xl font-semibold mb-3">Discover Albums</h2>
-          <div class="flex gap-3 overflow-x-auto pb-2" style="scrollbar-width:none;-ms-overflow-style:none">
-            <div
-              v-for="album in discoverAlbums" :key="album.id"
-              class="flex-none w-24 cursor-pointer group"
-              @click="openAlbumFromDiscover(album)"
-            >
-              <div class="aspect-square bg-amber-50 rounded-xl overflow-hidden mb-2 transition-transform duration-200 group-hover:scale-[1.03] relative">
-                <div class="w-full h-full flex items-center justify-center text-3xl select-none">💿</div>
-                <img :src="coverUrl(album.coverArt || album.id)" :alt="album.name" class="absolute inset-0 w-full h-full object-cover rounded-xl" @error="e => e.target.style.display='none'" />
-              </div>
-              <div class="text-sm font-medium truncate leading-tight">{{ album.name }}</div>
-              <div class="text-xs text-stone-400 truncate">{{ album.albumArtist || album.artist }}</div>
-            </div>
-          </div>
-        </div>
-
-        <div v-if="recentArtists.length || discoverArtists.length || discoverAlbums.length" class="border-b border-stone-200 mb-6"></div>
+        <div v-if="recentArtists.length || discoverArtists.length" class="border-b border-stone-200 mb-6"></div>
 
         <div v-if="loading" class="flex items-center justify-center py-24 text-stone-400 text-sm">Loading…</div>
         <template v-else>
@@ -213,7 +194,7 @@
 import { ref, reactive, nextTick, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePlayerStore } from '../stores/player'
-import { getArtists, getArtist, getAlbum, coverUrl, getNewestAlbums, getRandomAlbums } from '../api/subsonic'
+import { getArtists, getArtist, getAlbum, coverUrl, getNewestAlbums } from '../api/subsonic'
 import TrackItem  from '../components/TrackItem.vue'
 import ArtistCard from '../components/ArtistCard.vue'
 
@@ -261,7 +242,6 @@ function goToLetter(letter) {
 
 const recentArtists   = ref([])
 const discoverArtists = ref([])
-const discoverAlbums  = ref([])
 
 const currentAlbum = ref(null)
 const albumTracks  = ref([])
@@ -323,15 +303,6 @@ async function openAlbum(album) {
   } finally { loading.value = false }
 }
 
-async function openAlbumFromDiscover(album) {
-  if (!currentArtist.value || currentArtist.value.id !== album.artistId) {
-    currentArtist.value = { id: album.artistId, name: album.albumArtist || album.artist }
-    currentArtistLetter.value = getArtistLetter(currentArtist.value.name)
-    artistDetailImageUrl.value = null
-    currentArtistAlbums.value = []
-  }
-  await openAlbum(album)
-}
 
 async function playAlbum(album) {
   await openAlbum(album)
@@ -371,7 +342,7 @@ watch(() => route.params.id, (id) => {
 })
 
 onMounted(async () => {
-  const [, newestAlbums, randomAlbums] = await Promise.all([loadArtists(), getNewestAlbums(100), getRandomAlbums(20)])
+  const [, newestAlbums] = await Promise.all([loadArtists(), getNewestAlbums(100)])
   const seen = new Set()
   const artists = []
   for (const album of newestAlbums) {
@@ -382,7 +353,6 @@ onMounted(async () => {
     }
   }
   recentArtists.value = artists
-  discoverAlbums.value = randomAlbums
   if (route.params.id) openArtistById(route.params.id)
 })
 </script>

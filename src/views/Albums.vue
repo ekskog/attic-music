@@ -42,6 +42,28 @@
           </div>
         </div>
 
+        <!-- DISCOVER -->
+        <div v-if="discoverAlbums.length" class="px-4 pt-5 pb-4 border-b border-stone-100">
+          <div class="text-xs font-medium uppercase tracking-widest text-stone-400 mb-3">Discover</div>
+          <div class="flex gap-3 overflow-x-auto" style="scrollbar-width: none;">
+            <div
+              v-for="album in discoverAlbums" :key="album.id"
+              class="flex-shrink-0 w-28 cursor-pointer group"
+              @click="openAlbum(album)"
+            >
+              <div class="aspect-square bg-amber-50 mb-1.5 overflow-hidden relative rounded-lg">
+                <div class="w-full h-full flex items-center justify-center text-3xl">💿</div>
+                <img :src="coverUrl(album.coverArt || album.id)" :alt="album.name" class="absolute inset-0 w-full h-full object-cover" @error="onAlbumCoverError($event, album)" />
+                <div class="absolute inset-0 bg-black/25 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
+                  <button class="w-8 h-8 rounded-full bg-white flex items-center justify-center text-sm pl-0.5" @click.stop="playAlbum(album)">▶</button>
+                </div>
+              </div>
+              <div class="text-xs font-medium truncate leading-tight">{{ album.name }}</div>
+              <div class="text-xs text-stone-400 truncate mt-0.5">{{ album.albumArtist || album.artist }}</div>
+            </div>
+          </div>
+        </div>
+
         <!-- ALL ALBUMS GRID -->
         <div class="px-4 py-4">
           <div v-if="loading && !albums.length" class="flex items-center justify-center py-24 text-stone-400 text-sm">Loading…</div>
@@ -132,16 +154,17 @@
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePlayerStore } from '../stores/player'
-import { getAlbumPage, getNewestAlbums, getAlbum, coverUrl, getArtists } from '../api/subsonic'
+import { getAlbumPage, getNewestAlbums, getRandomAlbums, getAlbum, coverUrl, getArtists } from '../api/subsonic'
 import TrackItem from '../components/TrackItem.vue'
 
 const route  = useRoute()
 const router = useRouter()
 const player = usePlayerStore()
 
-const loading      = ref(false)
-const albums       = ref([])
-const recentAlbums = ref([])
+const loading        = ref(false)
+const albums         = ref([])
+const recentAlbums   = ref([])
+const discoverAlbums = ref([])
 const currentAlbum = ref(null)
 const albumTracks  = ref([])
 
@@ -167,7 +190,9 @@ function scrollCarousel(dir) {
 }
 
 async function loadRecent() {
-  recentAlbums.value = await getNewestAlbums(20)
+  const [recent, random] = await Promise.all([getNewestAlbums(20), getRandomAlbums(20)])
+  recentAlbums.value   = recent
+  discoverAlbums.value = random
   await nextTick()
   onCarouselScroll()
 }
