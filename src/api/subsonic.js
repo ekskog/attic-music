@@ -139,6 +139,11 @@ export async function getNewestAlbums(size = 12) {
   return ensureArray(data.albumList2?.album)
 }
 
+export async function getRandomAlbums(size = 20) {
+  const data = await request('getAlbumList2', { type: 'random', size })
+  return ensureArray(data.albumList2?.album)
+}
+
 export async function getPlaylists() {
   const data = await request('getPlaylists')
   return ensureArray(data.playlists?.playlist)
