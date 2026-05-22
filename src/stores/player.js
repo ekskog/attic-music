@@ -20,6 +20,11 @@ export const usePlayerStore = defineStore('player', () => {
   const currentTime  = ref(0)
   const duration     = ref(0)
 
+  const _savedVol = parseFloat(localStorage.getItem('attic_volume') ?? '1')
+  const volume = ref(isNaN(_savedVol) ? 1 : Math.min(1, Math.max(0, _savedVol)))
+  audio.volume = volume.value
+  let _lastVolBeforeMute = volume.value || 1
+
   // scrobble tracking — reset per track
   let scrobbleSubmitted = false
   let scrobbleThreshold = Infinity
@@ -132,6 +137,22 @@ export const usePlayerStore = defineStore('player', () => {
   function clearQueue()       { queue.value = []; currentIndex.value = -1 }
   function jumpToQueue(index) { playFromQueue(index) }
 
+  function setVolume(v) {
+    const clamped = Math.min(1, Math.max(0, v))
+    volume.value = clamped
+    audio.volume = clamped
+    localStorage.setItem('attic_volume', String(clamped))
+  }
+
+  function toggleMute() {
+    if (volume.value > 0) {
+      _lastVolBeforeMute = volume.value
+      setVolume(0)
+    } else {
+      setVolume(_lastVolBeforeMute || 1)
+    }
+  }
+
   function seek(event, el) {
     if (!duration.value) return
     const rect = el.getBoundingClientRect()
@@ -157,9 +178,9 @@ export const usePlayerStore = defineStore('player', () => {
 
   return {
     queue, currentIndex, currentTrack, isPlaying,
-    shuffle, repeat, currentTime, duration, progressPct,
+    shuffle, repeat, currentTime, duration, progressPct, volume,
     playTrack, playFromQueue, togglePlay,
     nextTrack, prevTrack, addToQueue, clearQueue, jumpToQueue,
-    seek, fmt,
+    seek, fmt, setVolume, toggleMute,
   }
 })

@@ -58,7 +58,19 @@
     </div>
 
     <!-- RIGHT -->
-    <div class="w-40 flex items-center justify-end gap-2 flex-shrink-0">
+    <div class="flex items-center justify-end gap-2 flex-shrink-0">
+      <!-- Volume -->
+      <button class="ctrl" @click="player.toggleMute()">
+        <VolumeX v-if="player.volume === 0" :size="16" />
+        <Volume1 v-else-if="player.volume < 0.5" :size="16" />
+        <Volume2 v-else :size="16" />
+      </button>
+      <input
+        type="range" min="0" max="1" step="0.01"
+        :value="player.volume"
+        @input="player.setVolume(+$event.target.value)"
+        class="w-20 cursor-pointer [accent-color:var(--accent)]"
+      />
       <button
         class="text-xs border border-stone-200 px-2.5 py-1.5 rounded text-stone-400 hover:border-amber-700 hover:text-amber-700 hover:bg-amber-50 transition-all"
         :class="{ 'border-amber-700 text-amber-700 bg-amber-50': showLyrics }"
@@ -151,7 +163,7 @@
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
-import { Shuffle, Repeat, Play, Pause, SkipBack, SkipForward } from 'lucide-vue-next'
+import { Shuffle, Repeat, Play, Pause, SkipBack, SkipForward, Volume1, Volume2, VolumeX } from 'lucide-vue-next'
 import { usePlayerStore } from '../stores/player'
 import { coverUrl, createPlaylist } from '../api/subsonic'
 import { fetchLyrics } from '../api/lyrics'
