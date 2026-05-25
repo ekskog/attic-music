@@ -110,7 +110,7 @@ import { useConfigStore } from '../stores/config'
 import { usePlayerStore } from '../stores/player'
 import { search } from '../api/subsonic'
 import RecentPlays from './RecentPlays.vue'
-import { Mic2, Disc3, ListMusic } from 'lucide-vue-next'
+import { House, Mic2, Disc3, ListMusic } from 'lucide-vue-next'
 
 const config = useConfigStore()
 const player = usePlayerStore()
@@ -118,6 +118,7 @@ const route  = useRoute()
 const router = useRouter()
 
 const navItems = [
+  { to: '/home',      icon: House,     label: 'Home'      },
   { to: '/artists',   icon: Mic2,      label: 'Artists'   },
   { to: '/albums',    icon: Disc3,     label: 'Albums'    },
   { to: '/playlists', icon: ListMusic, label: 'Playlists' },

@@ -14,7 +14,7 @@
             <div
               v-for="artist in recentArtists" :key="artist.id"
               class="flex-none cursor-pointer"
-              style="width:calc(100% / 3 - 8px)"
+              class="[width:calc(100%/3-8px)] md:w-36"
               @click="goToArtist(artist)"
             >
               <div class="aspect-square bg-stone-100 rounded-xl overflow-hidden mb-1.5 relative">
@@ -33,7 +33,7 @@
             <div
               v-for="artist in discoverArtists" :key="artist.id"
               class="flex-none cursor-pointer"
-              style="width:calc(100% / 3 - 8px)"
+              class="[width:calc(100%/3-8px)] md:w-36"
               @click="goToArtist(artist)"
             >
               <div class="aspect-square bg-stone-100 rounded-xl overflow-hidden mb-1.5 relative">
@@ -52,7 +52,7 @@
             <div
               v-for="album in discoverAlbums" :key="album.id"
               class="flex-none cursor-pointer"
-              style="width:calc(100% / 3 - 8px)"
+              class="[width:calc(100%/3-8px)] md:w-36"
               @click="goToAlbum(album)"
             >
               <div class="aspect-square bg-amber-50 rounded-xl overflow-hidden mb-1.5 relative">
