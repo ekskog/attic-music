@@ -10,7 +10,7 @@
         <!-- Recently Added Artists -->
         <div v-if="recentArtists.length" class="pt-5 mb-6">
           <div class="px-4 text-xs font-medium uppercase tracking-widest text-stone-400 mb-3">Recently Added</div>
-          <div class="flex gap-3 overflow-x-auto px-4 pb-1" style="scrollbar-width:none;-ms-overflow-style:none">
+          <div class="w-full flex gap-3 overflow-x-auto px-4 pb-1" style="scrollbar-width:none;-ms-overflow-style:none">
             <div
               v-for="artist in recentArtists" :key="artist.id"
               class="flex-none cursor-pointer"
@@ -29,7 +29,7 @@
         <!-- Discover Artists -->
         <div v-if="discoverArtists.length" class="mb-6">
           <div class="px-4 text-xs font-medium uppercase tracking-widest text-stone-400 mb-3">Discover Artists</div>
-          <div class="flex gap-3 overflow-x-auto px-4 pb-1" style="scrollbar-width:none;-ms-overflow-style:none">
+          <div class="w-full flex gap-3 overflow-x-auto px-4 pb-1" style="scrollbar-width:none;-ms-overflow-style:none">
             <div
               v-for="artist in discoverArtists" :key="artist.id"
               class="flex-none cursor-pointer"
@@ -48,7 +48,7 @@
         <!-- Discover Albums -->
         <div v-if="discoverAlbums.length" class="mb-6">
           <div class="px-4 text-xs font-medium uppercase tracking-widest text-stone-400 mb-3">Discover Albums</div>
-          <div class="flex gap-3 overflow-x-auto px-4 pb-1" style="scrollbar-width:none;-ms-overflow-style:none">
+          <div class="w-full flex gap-3 overflow-x-auto px-4 pb-1" style="scrollbar-width:none;-ms-overflow-style:none">
             <div
               v-for="album in discoverAlbums" :key="album.id"
               class="flex-none cursor-pointer"

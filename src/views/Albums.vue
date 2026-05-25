@@ -72,7 +72,7 @@
               class="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-10 w-7 h-7 rounded-full bg-white shadow-md border border-stone-200 items-center justify-center text-stone-500 hover:text-amber-700 transition-colors"
               @click="scrollCarousel(-1)"
             >‹</button>
-            <div ref="carousel" class="flex gap-3 overflow-x-auto scroll-smooth" style="scrollbar-width:none;-ms-overflow-style:none" @scroll="onCarouselScroll">
+            <div ref="carousel" class="w-full flex gap-3 overflow-x-auto scroll-smooth" style="scrollbar-width:none;-ms-overflow-style:none" @scroll="onCarouselScroll">
               <div
                 v-for="album in recentAlbums" :key="album.id"
                 class="flex-shrink-0 cursor-pointer group"
@@ -101,7 +101,7 @@
         <!-- DISCOVER -->
         <div v-if="discoverAlbums.length" class="px-4 pt-5 pb-4 border-b border-stone-100">
           <div class="text-xs font-medium uppercase tracking-widest text-stone-400 mb-3">Discover</div>
-          <div class="flex gap-3 overflow-x-auto" style="scrollbar-width:none;-ms-overflow-style:none">
+          <div class="w-full flex gap-3 overflow-x-auto" style="scrollbar-width:none;-ms-overflow-style:none">
             <div
               v-for="album in discoverAlbums" :key="album.id"
               class="flex-shrink-0 cursor-pointer group"
