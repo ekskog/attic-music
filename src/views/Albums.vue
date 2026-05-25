@@ -4,7 +4,61 @@
     <!-- ALBUM LIST -->
     <template v-if="!currentAlbum">
       <div class="px-6 py-6 border-b border-stone-200 bg-white flex-shrink-0">
-        <h1 class="font-serif text-3xl font-semibold">Albums</h1>
+        <h1 class="font-serif text-3xl font-semibold mb-3">Albums</h1>
+        <div v-if="albums.length" class="flex items-center gap-2 flex-wrap">
+
+          <!-- Genre -->
+          <div v-if="distinctGenres.length" class="relative">
+            <div v-if="showGenreDropdown" class="fixed inset-0 z-10" @click="showGenreDropdown = false"></div>
+            <button
+              class="relative z-20 text-xs border px-2.5 py-1.5 rounded transition-all"
+              :class="filterGenre ? 'border-amber-700 text-amber-700 bg-amber-50' : 'border-stone-200 text-stone-400 hover:border-amber-700 hover:text-amber-700 hover:bg-amber-50'"
+              @click="showGenreDropdown = !showGenreDropdown; showYearDropdown = false"
+            >{{ filterGenre || 'Genre' }} ▾</button>
+            <div v-if="showGenreDropdown" class="absolute top-full left-0 mt-1 bg-white border border-stone-200 shadow-md rounded z-20 min-w-[130px] max-h-60 overflow-y-auto">
+              <button
+                class="block w-full text-left px-3 py-1.5 text-xs hover:bg-stone-50 transition-colors"
+                :class="!filterGenre ? 'text-amber-700 font-medium' : 'text-stone-600'"
+                @click="filterGenre = null; showGenreDropdown = false"
+              >All genres</button>
+              <button
+                v-for="g in distinctGenres" :key="g"
+                class="block w-full text-left px-3 py-1.5 text-xs hover:bg-stone-50 transition-colors"
+                :class="filterGenre === g ? 'text-amber-700 font-medium' : 'text-stone-600'"
+                @click="filterGenre = g; showGenreDropdown = false"
+              >{{ g }}</button>
+            </div>
+          </div>
+
+          <!-- Year -->
+          <div v-if="distinctYears.length" class="relative">
+            <div v-if="showYearDropdown" class="fixed inset-0 z-10" @click="showYearDropdown = false"></div>
+            <button
+              class="relative z-20 text-xs border px-2.5 py-1.5 rounded transition-all"
+              :class="filterYear ? 'border-amber-700 text-amber-700 bg-amber-50' : 'border-stone-200 text-stone-400 hover:border-amber-700 hover:text-amber-700 hover:bg-amber-50'"
+              @click="showYearDropdown = !showYearDropdown; showGenreDropdown = false"
+            >{{ filterYear || 'Year' }} ▾</button>
+            <div v-if="showYearDropdown" class="absolute top-full left-0 mt-1 bg-white border border-stone-200 shadow-md rounded z-20 min-w-[80px] max-h-60 overflow-y-auto">
+              <button
+                class="block w-full text-left px-3 py-1.5 text-xs hover:bg-stone-50 transition-colors"
+                :class="!filterYear ? 'text-amber-700 font-medium' : 'text-stone-600'"
+                @click="filterYear = null; showYearDropdown = false"
+              >All years</button>
+              <button
+                v-for="y in distinctYears" :key="y"
+                class="block w-full text-left px-3 py-1.5 text-xs hover:bg-stone-50 transition-colors"
+                :class="filterYear === y ? 'text-amber-700 font-medium' : 'text-stone-600'"
+                @click="filterYear = y; showYearDropdown = false"
+              >{{ y }}</button>
+            </div>
+          </div>
+
+          <button
+            v-if="filterGenre || filterYear"
+            class="text-xs text-stone-400 hover:text-amber-700 transition-colors"
+            @click="filterGenre = null; filterYear = null"
+          >Clear</button>
+        </div>
       </div>
       <div class="flex-1 min-h-0 overflow-y-auto pb-40 md:pb-24">
 
@@ -71,9 +125,10 @@
             <span class="text-4xl">💿</span>
             <span class="font-serif text-lg">No albums found</span>
           </div>
+          <div v-else-if="!filteredAlbums.length" class="flex items-center justify-center py-24 text-stone-400 text-sm">No albums match the filter.</div>
           <div v-else class="grid gap-4" style="grid-template-columns: repeat(auto-fill, minmax(100px, 1fr))">
             <div
-              v-for="album in albums" :key="album.id"
+              v-for="album in filteredAlbums" :key="album.id"
               class="cursor-pointer group"
               @click="openAlbum(album)"
             >
@@ -151,7 +206,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePlayerStore } from '../stores/player'
 import { getAlbumPage, getNewestAlbums, getRandomAlbums, getAlbum, coverUrl, getArtists } from '../api/subsonic'
@@ -167,6 +222,30 @@ const recentAlbums   = ref([])
 const discoverAlbums = ref([])
 const currentAlbum = ref(null)
 const albumTracks  = ref([])
+
+const filterGenre       = ref(null)
+const filterYear        = ref(null)
+const showGenreDropdown = ref(false)
+const showYearDropdown  = ref(false)
+
+const distinctGenres = computed(() => {
+  const genres = [...new Set(albums.value.map(a => a.genre).filter(Boolean))]
+  return genres.sort()
+})
+
+const distinctYears = computed(() => {
+  const years = [...new Set(albums.value.map(a => a.year).filter(Boolean))]
+  return years.sort((a, b) => b - a)
+})
+
+const filteredAlbums = computed(() => {
+  if (!filterGenre.value && !filterYear.value) return albums.value
+  return albums.value.filter(a => {
+    if (filterGenre.value && a.genre !== filterGenre.value) return false
+    if (filterYear.value  && a.year  !== filterYear.value)  return false
+    return true
+  })
+})
 
 const sentinel   = ref(null)
 const allLoaded  = ref(false)

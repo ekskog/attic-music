@@ -71,7 +71,24 @@
           <!-- LYRICS PANEL -->
           <div v-else class="flex-1 overflow-y-auto py-2" ref="lyricsEl">
             <div v-if="lyricsLoading" class="flex items-center justify-center h-full text-stone-300 text-sm">Loading…</div>
-            <div v-else-if="!lyrics" class="flex items-center justify-center h-full text-stone-300 text-sm">No lyrics found</div>
+            <template v-else-if="!lyrics">
+              <div class="text-stone-300 text-sm text-center pt-12 pb-4">No lyrics found</div>
+              <template v-if="addingLyrics">
+                <textarea
+                  v-model="manualLyricsText"
+                  class="w-full text-sm text-stone-700 border border-stone-200 rounded p-3 outline-none focus:border-amber-700 resize-none leading-relaxed bg-white"
+                  rows="10"
+                  placeholder="Paste lyrics here…"
+                ></textarea>
+                <div class="flex gap-4 mt-3">
+                  <button class="text-sm text-amber-700 font-medium" @click="saveLyricsManually">Save</button>
+                  <button class="text-sm text-stone-400" @click="addingLyrics = false; manualLyricsText = ''">Cancel</button>
+                </div>
+              </template>
+              <div v-else class="text-center">
+                <button class="text-sm text-stone-400 hover:text-amber-700 transition-colors" @click="addingLyrics = true">+ Add lyrics manually</button>
+              </div>
+            </template>
             <template v-else-if="lyrics.synced">
               <p
                 v-for="(line, i) in lyrics.synced"
@@ -168,7 +185,7 @@ import { ref, computed, watch, nextTick } from 'vue'
 import { Shuffle, Repeat, Play, Pause, SkipBack, SkipForward, Volume1, Volume2, VolumeX } from 'lucide-vue-next'
 import { usePlayerStore } from '../stores/player'
 import { coverUrl } from '../api/subsonic'
-import { fetchLyrics } from '../api/lyrics'
+import { fetchLyrics, saveManualLyrics } from '../api/lyrics'
 
 const props = defineProps({
   show: { type: Boolean, required: true }
@@ -179,11 +196,13 @@ const emit = defineEmits(['collapse'])
 const player     = usePlayerStore()
 const progressEl = ref(null)
 const showQueue  = ref(false)
-const lyricsView = ref(false)
-const lyrics     = ref(null)
-const lyricsLoading = ref(false)
-const lyricsEl   = ref(null)
-const lineEls    = ref([])
+const lyricsView     = ref(false)
+const lyrics         = ref(null)
+const lyricsLoading  = ref(false)
+const lyricsEl       = ref(null)
+const lineEls        = ref([])
+const addingLyrics   = ref(false)
+const manualLyricsText = ref('')
 
 const activeLine = computed(() => {
   if (!lyrics.value?.synced) return -1
@@ -201,14 +220,24 @@ watch(activeLine, async (idx) => {
 })
 
 watch(() => player.currentTrack?.id, () => {
-  lyrics.value = null
-  lineEls.value = []
+  lyrics.value           = null
+  lineEls.value          = []
+  addingLyrics.value     = false
+  manualLyricsText.value = ''
   if (lyricsView.value) loadLyrics()
 })
 
 async function openLyrics() {
   lyricsView.value = true
   if (!lyrics.value && player.currentTrack) await loadLyrics()
+}
+
+async function saveLyricsManually() {
+  if (!player.currentTrack || !manualLyricsText.value.trim()) return
+  saveManualLyrics(player.currentTrack.id, manualLyricsText.value)
+  addingLyrics.value     = false
+  manualLyricsText.value = ''
+  await loadLyrics()
 }
 
 async function loadLyrics() {

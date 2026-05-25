@@ -93,7 +93,25 @@
         </div>
         <div class="overflow-y-auto flex-1 px-4 py-3" ref="lyricsEl">
           <div v-if="lyricsLoading" class="text-xs text-stone-300 text-center py-8">Loading…</div>
-          <div v-else-if="!lyrics" class="text-xs text-stone-300 text-center py-8">No lyrics found</div>
+          <template v-else-if="!lyrics">
+            <div class="text-xs text-stone-300 text-center pt-8 pb-3">No lyrics found</div>
+            <template v-if="addingLyrics">
+              <textarea
+                v-model="manualLyricsText"
+                class="w-full text-xs text-stone-700 border border-stone-200 rounded p-2 outline-none focus:border-amber-700 resize-none leading-relaxed"
+                rows="8"
+                placeholder="Paste lyrics here…"
+                autofocus
+              ></textarea>
+              <div class="flex gap-3 mt-2">
+                <button class="text-xs text-amber-700 font-medium hover:text-amber-800 transition-colors" @click="saveLyricsManually">Save</button>
+                <button class="text-xs text-stone-400 hover:text-stone-600 transition-colors" @click="addingLyrics = false; manualLyricsText = ''">Cancel</button>
+              </div>
+            </template>
+            <div v-else class="text-center">
+              <button class="text-xs text-stone-400 hover:text-amber-700 transition-colors" @click="addingLyrics = true">+ Add lyrics manually</button>
+            </div>
+          </template>
           <template v-else-if="lyrics.synced">
             <p
               v-for="(line, i) in lyrics.synced"
@@ -166,7 +184,7 @@ import { ref, computed, watch, nextTick } from 'vue'
 import { Shuffle, Repeat, Play, Pause, SkipBack, SkipForward, Volume1, Volume2, VolumeX } from 'lucide-vue-next'
 import { usePlayerStore } from '../stores/player'
 import { coverUrl, createPlaylist } from '../api/subsonic'
-import { fetchLyrics } from '../api/lyrics'
+import { fetchLyrics, saveManualLyrics } from '../api/lyrics'
 import MiniPlayer from './MiniPlayer.vue'
 import FullPlayer from './FullPlayer.vue'
 import BottomNav  from './BottomNav.vue'
@@ -197,8 +215,10 @@ watch(activeLine, async (idx) => {
 })
 
 watch(() => player.currentTrack?.id, () => {
-  lyrics.value = null
-  lineEls.value = []
+  lyrics.value       = null
+  lineEls.value      = []
+  addingLyrics.value     = false
+  manualLyricsText.value = ''
   if (showLyrics.value) loadLyrics()
 })
 
@@ -213,6 +233,17 @@ async function loadLyrics() {
   lineEls.value = []
   try { lyrics.value = await fetchLyrics(player.currentTrack) }
   finally { lyricsLoading.value = false }
+}
+
+const addingLyrics     = ref(false)
+const manualLyricsText = ref('')
+
+async function saveLyricsManually() {
+  if (!player.currentTrack || !manualLyricsText.value.trim()) return
+  saveManualLyrics(player.currentTrack.id, manualLyricsText.value)
+  addingLyrics.value     = false
+  manualLyricsText.value = ''
+  await loadLyrics()
 }
 
 const savingPlaylist    = ref(false)
