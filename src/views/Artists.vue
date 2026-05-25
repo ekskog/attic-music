@@ -3,12 +3,12 @@
 
     <!-- ARTISTS GRID -->
     <template v-if="view === 'grid'">
-      <div class="border-b border-stone-200 bg-white flex-shrink-0">
-        <div class="px-4 md:px-8 pt-3 md:pt-7 pb-3">
-          <h1 class="font-serif hidden md:block text-4xl font-semibold mb-3">Artists</h1>
-          <div v-if="!loading" class="flex items-center gap-2 flex-wrap">
-            <span class="text-sm font-semibold mr-1 md:hidden">Artists</span>
 
+      <!-- ── DESKTOP HEADER (letter nav + filters) ── -->
+      <div class="hidden md:block border-b border-stone-200 bg-white flex-shrink-0">
+        <div class="px-8 pt-7 pb-3">
+          <h1 class="font-serif text-4xl font-semibold mb-3">Artists</h1>
+          <div v-if="!loading" class="flex items-center gap-2 flex-wrap">
             <!-- Genre -->
             <div v-if="distinctGenres.length" class="relative">
               <div v-if="showGenreDropdown" class="fixed inset-0 z-10" @click="showGenreDropdown = false"></div>
@@ -27,7 +27,6 @@
                   @click="filterGenre = g; showGenreDropdown = false">{{ g }}</button>
               </div>
             </div>
-
             <!-- Year -->
             <div v-if="distinctYears.length" class="relative">
               <div v-if="showYearDropdown" class="fixed inset-0 z-10" @click="showYearDropdown = false"></div>
@@ -46,39 +45,81 @@
                   @click="filterYear = y; showYearDropdown = false">{{ y }}</button>
               </div>
             </div>
-
             <button v-if="filterGenre || filterYear"
               class="text-xs text-stone-400 hover:text-amber-700 transition-colors"
               @click="filterGenre = null; filterYear = null">Clear</button>
           </div>
         </div>
-        <div class="px-4 md:px-6 pb-2 flex flex-wrap gap-0.5">
+        <div class="px-6 pb-2 flex flex-wrap gap-0.5">
           <button
-            v-for="letter in LETTERS"
-            :key="letter"
-            type="button"
-            tabindex="-1"
+            v-for="letter in LETTERS" :key="letter"
+            type="button" tabindex="-1"
             class="min-w-[1.75rem] h-7 px-1 text-xs font-medium rounded transition-colors select-none"
-            :class="expandedGroups[letter]
-              ? 'bg-amber-700 text-white'
-              : 'text-stone-500 hover:text-amber-700 hover:bg-amber-50'"
+            :class="expandedGroups[letter] ? 'bg-amber-700 text-white' : 'text-stone-500 hover:text-amber-700 hover:bg-amber-50'"
             @click="toggleAndScroll(letter)"
-          >
-            {{ letter }}
-          </button>
+          >{{ letter }}</button>
         </div>
       </div>
-      <div ref="scrollContainer" class="flex-1 overflow-y-auto px-6 py-4 pb-40 md:pb-24">
 
+      <!-- ── MOBILE HEADER (search + filters in one row) ── -->
+      <div class="md:hidden border-b border-stone-200 bg-white flex-shrink-0 px-4 py-3">
+        <div class="flex items-center gap-2">
+          <!-- Search -->
+          <div class="relative flex-1 min-w-0">
+            <input
+              v-model="mobileQuery"
+              type="search"
+              placeholder="Search artists…"
+              class="w-full text-sm px-3 py-2 rounded-lg border border-stone-200 bg-stone-50 placeholder-stone-400 focus:outline-none focus:border-amber-400 transition-colors pr-6"
+            />
+            <button v-if="mobileQuery" class="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 text-xs" @click="mobileQuery = ''">✕</button>
+          </div>
+          <!-- Genre filter -->
+          <div v-if="distinctGenres.length" class="relative flex-shrink-0">
+            <div v-if="showGenreDropdown" class="fixed inset-0 z-10" @click="showGenreDropdown = false"></div>
+            <button
+              class="relative z-20 text-xs border px-2 py-2 rounded transition-all whitespace-nowrap"
+              :class="filterGenre ? 'border-amber-700 text-amber-700 bg-amber-50' : 'border-stone-200 text-stone-400'"
+              @click="showGenreDropdown = !showGenreDropdown; showYearDropdown = false"
+            >{{ filterGenre ? (filterGenre.length > 7 ? filterGenre.slice(0, 7) + '…' : filterGenre) : 'Genre' }} ▾</button>
+            <div v-if="showGenreDropdown" class="absolute top-full right-0 mt-1 bg-white border border-stone-200 shadow-md rounded z-20 min-w-[130px] max-h-60 overflow-y-auto">
+              <button class="block w-full text-left px-3 py-1.5 text-xs hover:bg-stone-50 transition-colors"
+                :class="!filterGenre ? 'text-amber-700 font-medium' : 'text-stone-600'"
+                @click="filterGenre = null; showGenreDropdown = false">All genres</button>
+              <button v-for="g in distinctGenres" :key="g"
+                class="block w-full text-left px-3 py-1.5 text-xs hover:bg-stone-50 transition-colors"
+                :class="filterGenre === g ? 'text-amber-700 font-medium' : 'text-stone-600'"
+                @click="filterGenre = g; showGenreDropdown = false">{{ g }}</button>
+            </div>
+          </div>
+          <!-- Year filter -->
+          <div v-if="distinctYears.length" class="relative flex-shrink-0">
+            <div v-if="showYearDropdown" class="fixed inset-0 z-10" @click="showYearDropdown = false"></div>
+            <button
+              class="relative z-20 text-xs border px-2 py-2 rounded transition-all"
+              :class="filterYear ? 'border-amber-700 text-amber-700 bg-amber-50' : 'border-stone-200 text-stone-400'"
+              @click="showYearDropdown = !showYearDropdown; showGenreDropdown = false"
+            >{{ filterYear || 'Year' }} ▾</button>
+            <div v-if="showYearDropdown" class="absolute top-full right-0 mt-1 bg-white border border-stone-200 shadow-md rounded z-20 min-w-[80px] max-h-60 overflow-y-auto">
+              <button class="block w-full text-left px-3 py-1.5 text-xs hover:bg-stone-50 transition-colors"
+                :class="!filterYear ? 'text-amber-700 font-medium' : 'text-stone-600'"
+                @click="filterYear = null; showYearDropdown = false">All years</button>
+              <button v-for="y in distinctYears" :key="y"
+                class="block w-full text-left px-3 py-1.5 text-xs hover:bg-stone-50 transition-colors"
+                :class="filterYear === y ? 'text-amber-700 font-medium' : 'text-stone-600'"
+                @click="filterYear = y; showYearDropdown = false">{{ y }}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── DESKTOP CONTENT ── -->
+      <div ref="scrollContainer" class="hidden md:block flex-1 overflow-y-auto px-6 py-4 pb-24">
         <!-- Recently Added -->
         <div v-if="recentArtists.length" class="mb-8">
           <h2 class="font-serif text-xl font-semibold mb-3">Recently Added</h2>
           <div class="flex gap-3 overflow-x-auto pb-2" style="scrollbar-width:none;-ms-overflow-style:none">
-            <div
-              v-for="artist in recentArtists" :key="artist.id"
-              class="flex-none w-24 cursor-pointer group"
-              @click="openArtist(artist)"
-            >
+            <div v-for="artist in recentArtists" :key="artist.id" class="flex-none w-24 cursor-pointer group" @click="openArtist(artist)">
               <div class="aspect-square bg-stone-100 rounded-xl overflow-hidden mb-2 transition-transform duration-200 group-hover:scale-[1.03] relative">
                 <div class="w-full h-full flex items-center justify-center font-serif text-3xl font-semibold text-stone-300 select-none">{{ artist.name[0]?.toUpperCase() }}</div>
                 <img :src="`/artist-images/avatar?name=${encodeURIComponent(artist.name)}`" :alt="artist.name" class="absolute inset-0 w-full h-full object-cover" @error="e => e.target.style.display='none'" />
@@ -87,16 +128,11 @@
             </div>
           </div>
         </div>
-
         <!-- Discover Artists -->
         <div v-if="discoverArtists.length" class="mb-8">
           <h2 class="font-serif text-xl font-semibold mb-3">Discover Artists</h2>
           <div class="flex gap-3 overflow-x-auto pb-2" style="scrollbar-width:none;-ms-overflow-style:none">
-            <div
-              v-for="artist in discoverArtists" :key="artist.id"
-              class="flex-none w-24 cursor-pointer group"
-              @click="openArtist(artist)"
-            >
+            <div v-for="artist in discoverArtists" :key="artist.id" class="flex-none w-24 cursor-pointer group" @click="openArtist(artist)">
               <div class="aspect-square bg-stone-100 rounded-xl overflow-hidden mb-2 transition-transform duration-200 group-hover:scale-[1.03] relative">
                 <div class="w-full h-full flex items-center justify-center font-serif text-3xl font-semibold text-stone-300 select-none">{{ artist.name[0]?.toUpperCase() }}</div>
                 <img :src="`/artist-images/avatar?name=${encodeURIComponent(artist.name)}`" :alt="artist.name" class="absolute inset-0 w-full h-full object-cover" @error="e => e.target.style.display='none'" />
@@ -105,33 +141,78 @@
             </div>
           </div>
         </div>
-
         <div v-if="recentArtists.length || discoverArtists.length" class="border-b border-stone-200 mb-6"></div>
-
         <div v-if="loading" class="flex items-center justify-center py-24 text-stone-400 text-sm">Loading…</div>
         <div v-else-if="(filterGenre || filterYear) && !filteredArtists.length" class="flex items-center justify-center py-24 text-stone-400 text-sm">No artists match the filter.</div>
         <template v-else>
           <template v-for="group in filteredArtistIndex" :key="group.name">
-          <div
-            v-if="expandedGroups[group.name]"
-            :ref="el => setGroupRef(group.name, el)"
-            class="mb-6"
-          >
-            <div class="font-serif text-xl font-semibold text-amber-700 border-b border-stone-200 pb-1 mb-3">
-              {{ group.name }}
+            <div v-if="expandedGroups[group.name]" :ref="el => setGroupRef(group.name, el)" class="mb-6">
+              <div class="font-serif text-xl font-semibold text-amber-700 border-b border-stone-200 pb-1 mb-3">{{ group.name }}</div>
+              <div class="grid gap-4" style="grid-template-columns: repeat(auto-fill, minmax(120px, 1fr))">
+                <ArtistCard v-for="artist in group.artist" :key="artist.id" :artist="artist" @click="openArtist(artist)" />
+              </div>
             </div>
-            <div class="grid gap-4" style="grid-template-columns: repeat(auto-fill, minmax(120px, 1fr))">
-              <ArtistCard
-                v-for="artist in group.artist"
-                :key="artist.id"
-                :artist="artist"
-                @click="openArtist(artist)"
-              />
-            </div>
-          </div>
           </template>
         </template>
       </div>
+
+      <!-- ── MOBILE CONTENT ── -->
+      <div class="md:hidden flex-1 overflow-y-auto pb-40">
+        <div v-if="loading" class="flex items-center justify-center py-24 text-stone-400 text-sm">Loading…</div>
+        <template v-else>
+
+          <!-- BROWSE MODE: 2 carousels (no search, no filter active) -->
+          <template v-if="!mobileQuery && !filterGenre && !filterYear">
+            <div v-if="recentArtists.length" class="pt-5 mb-6">
+              <div class="px-4 text-xs font-medium uppercase tracking-widest text-stone-400 mb-3">Recently Added</div>
+              <div class="flex gap-3 overflow-x-auto px-4 pb-1" style="scrollbar-width:none;-ms-overflow-style:none">
+                <div v-for="artist in recentArtists" :key="artist.id" class="flex-none cursor-pointer" style="width:calc(100% / 3 - 8px)" @click="openArtist(artist)">
+                  <div class="aspect-square bg-stone-100 rounded-xl overflow-hidden mb-1.5 relative">
+                    <div class="w-full h-full flex items-center justify-center font-serif text-3xl font-semibold text-stone-300 select-none">{{ artist.name[0]?.toUpperCase() }}</div>
+                    <img :src="`/artist-images/avatar?name=${encodeURIComponent(artist.name)}`" :alt="artist.name" class="absolute inset-0 w-full h-full object-cover" @error="e => e.target.style.display='none'" />
+                  </div>
+                  <div class="text-xs font-medium truncate leading-tight text-center">{{ artist.name }}</div>
+                </div>
+              </div>
+            </div>
+            <div v-if="discoverArtists.length" class="mb-6">
+              <div class="px-4 text-xs font-medium uppercase tracking-widest text-stone-400 mb-3">Discover Artists</div>
+              <div class="flex gap-3 overflow-x-auto px-4 pb-1" style="scrollbar-width:none;-ms-overflow-style:none">
+                <div v-for="artist in discoverArtists" :key="artist.id" class="flex-none cursor-pointer" style="width:calc(100% / 3 - 8px)" @click="openArtist(artist)">
+                  <div class="aspect-square bg-stone-100 rounded-xl overflow-hidden mb-1.5 relative">
+                    <div class="w-full h-full flex items-center justify-center font-serif text-3xl font-semibold text-stone-300 select-none">{{ artist.name[0]?.toUpperCase() }}</div>
+                    <img :src="`/artist-images/avatar?name=${encodeURIComponent(artist.name)}`" :alt="artist.name" class="absolute inset-0 w-full h-full object-cover" @error="e => e.target.style.display='none'" />
+                  </div>
+                  <div class="text-xs font-medium truncate leading-tight text-center">{{ artist.name }}</div>
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <!-- SEARCH / FILTER MODE: alphabetical contact list -->
+          <template v-else>
+            <div v-if="mobileFilteredIndex.length">
+              <template v-for="group in mobileFilteredIndex" :key="group.name">
+                <div class="px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-amber-700 bg-stone-50 border-b border-stone-100">{{ group.name }}</div>
+                <div
+                  v-for="artist in group.artist" :key="artist.id"
+                  class="flex items-center gap-3 px-4 py-2 border-b border-stone-100 active:bg-stone-50 cursor-pointer"
+                  @click="openArtist(artist)"
+                >
+                  <div class="w-11 h-11 rounded-full overflow-hidden flex-shrink-0 bg-stone-100 relative">
+                    <div class="w-full h-full flex items-center justify-center font-semibold text-stone-300 select-none">{{ artist.name[0]?.toUpperCase() }}</div>
+                    <img :src="`/artist-images/avatar?name=${encodeURIComponent(artist.name)}`" :alt="artist.name" class="absolute inset-0 w-full h-full object-cover" @error="e => e.target.style.display='none'" />
+                  </div>
+                  <span class="text-sm font-medium truncate">{{ artist.name }}</span>
+                </div>
+              </template>
+            </div>
+            <div v-else class="flex items-center justify-center py-24 text-stone-400 text-sm">No artists found</div>
+          </template>
+
+        </template>
+      </div>
+
     </template>
 
     <!-- ARTIST DETAIL -->
@@ -325,6 +406,16 @@ function goToLetter(letter) {
 
 const recentArtists   = ref([])
 const discoverArtists = ref([])
+const mobileQuery     = ref('')
+
+const mobileFilteredIndex = computed(() => {
+  const q = mobileQuery.value.toLowerCase().trim()
+  const base = filteredArtistIndex.value
+  if (!q) return base
+  return base
+    .map(g => ({ ...g, artist: g.artist.filter(a => a.name.toLowerCase().includes(q)) }))
+    .filter(g => g.artist.length)
+})
 
 const artistGenreMap    = ref({})  // artistId -> { genres: Set, years: Set }
 const filterGenre       = ref(null)

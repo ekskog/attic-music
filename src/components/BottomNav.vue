@@ -14,11 +14,12 @@
 
 <script setup>
 import { useRoute } from 'vue-router'
-import { Mic2, Disc3, ListMusic, Search } from 'lucide-vue-next'
+import { Home, Mic2, Disc3, ListMusic, Search } from 'lucide-vue-next'
 
 const route = useRoute()
 
 const navItems = [
+  { to: '/home',      icon: Home,      label: 'Home'      },
   { to: '/artists',   icon: Mic2,      label: 'Artists'   },
   { to: '/albums',    icon: Disc3,     label: 'Albums'    },
   { to: '/playlists', icon: ListMusic, label: 'Playlists' },

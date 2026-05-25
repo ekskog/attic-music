@@ -69,13 +69,14 @@
           <div class="relative">
             <button
               v-if="canScrollLeft"
-              class="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-10 w-7 h-7 rounded-full bg-white shadow-md border border-stone-200 flex items-center justify-center text-stone-500 hover:text-amber-700 transition-colors"
+              class="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-10 w-7 h-7 rounded-full bg-white shadow-md border border-stone-200 items-center justify-center text-stone-500 hover:text-amber-700 transition-colors"
               @click="scrollCarousel(-1)"
             >‹</button>
-            <div ref="carousel" class="flex gap-3 overflow-x-auto scroll-smooth" style="scrollbar-width: none;" @scroll="onCarouselScroll">
+            <div ref="carousel" class="flex gap-3 overflow-x-auto scroll-smooth" style="scrollbar-width:none;-ms-overflow-style:none" @scroll="onCarouselScroll">
               <div
                 v-for="album in recentAlbums" :key="album.id"
-                class="flex-shrink-0 w-28 cursor-pointer group"
+                class="flex-shrink-0 cursor-pointer group"
+                style="width:calc(100% / 3 - 8px)"
                 @click="openAlbum(album)"
               >
                 <div class="aspect-square bg-amber-50 mb-1.5 overflow-hidden relative rounded-lg">
@@ -91,7 +92,7 @@
             </div>
             <button
               v-if="canScrollRight"
-              class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-10 w-7 h-7 rounded-full bg-white shadow-md border border-stone-200 flex items-center justify-center text-stone-500 hover:text-amber-700 transition-colors"
+              class="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-10 w-7 h-7 rounded-full bg-white shadow-md border border-stone-200 items-center justify-center text-stone-500 hover:text-amber-700 transition-colors"
               @click="scrollCarousel(1)"
             >›</button>
           </div>
@@ -100,10 +101,11 @@
         <!-- DISCOVER -->
         <div v-if="discoverAlbums.length" class="px-4 pt-5 pb-4 border-b border-stone-100">
           <div class="text-xs font-medium uppercase tracking-widest text-stone-400 mb-3">Discover</div>
-          <div class="flex gap-3 overflow-x-auto" style="scrollbar-width: none;">
+          <div class="flex gap-3 overflow-x-auto" style="scrollbar-width:none;-ms-overflow-style:none">
             <div
               v-for="album in discoverAlbums" :key="album.id"
-              class="flex-shrink-0 w-28 cursor-pointer group"
+              class="flex-shrink-0 cursor-pointer group"
+              style="width:calc(100% / 3 - 8px)"
               @click="openAlbum(album)"
             >
               <div class="aspect-square bg-amber-50 mb-1.5 overflow-hidden relative rounded-lg">
@@ -216,6 +218,7 @@ import TrackItem from '../components/TrackItem.vue'
 const route  = useRoute()
 const router = useRouter()
 const player = usePlayerStore()
+
 
 const loading        = ref(false)
 const albums         = ref([])
