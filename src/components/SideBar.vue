@@ -40,7 +40,7 @@
       </div>
 
       <div
-        v-if="results && (results.artists.length || results.albums.length)"
+        v-if="results && (results.artists.length || results.albums.length || results.songs.length)"
         class="absolute left-4 right-4 z-50 mt-1 bg-white border border-stone-200 rounded-lg shadow-lg max-h-80 overflow-y-auto"
       >
         <template v-if="results.artists.length">
@@ -65,6 +65,21 @@
           >
             <div class="truncate">{{ album.name }}</div>
             <div class="text-xs text-stone-400 truncate">{{ album.artist }}</div>
+          </button>
+        </template>
+        <template v-if="results.songs.length">
+          <div
+            class="px-3 py-1.5 text-xs text-stone-400 uppercase tracking-wider border-b border-stone-100"
+            :class="{ 'border-t border-stone-100': results.artists.length || results.albums.length }"
+          >Tracks</div>
+          <button
+            v-for="song in results.songs"
+            :key="song.id"
+            class="w-full text-left px-3 py-2 text-sm hover:bg-amber-50 hover:text-amber-700 transition-colors"
+            @click="playSong(song)"
+          >
+            <div class="truncate">{{ song.title }}</div>
+            <div class="text-xs text-stone-400 truncate">{{ song.artist }} · {{ song.album }}</div>
           </button>
         </template>
       </div>
@@ -92,11 +107,13 @@
 import { ref, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useConfigStore } from '../stores/config'
+import { usePlayerStore } from '../stores/player'
 import { search } from '../api/subsonic'
 import RecentPlays from './RecentPlays.vue'
 import { Mic2, Disc3, ListMusic } from 'lucide-vue-next'
 
 const config = useConfigStore()
+const player = usePlayerStore()
 const route  = useRoute()
 const router = useRouter()
 
@@ -142,6 +159,11 @@ function goArtist(artist) {
 
 function goAlbum(album) {
   router.push({ name: 'album-detail', params: { id: album.id } })
+  clear()
+}
+
+function playSong(song) {
+  player.playTrack(song, [song], 0)
   clear()
 }
 

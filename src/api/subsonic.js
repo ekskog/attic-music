@@ -113,6 +113,29 @@ export async function getArtistCoverMap() {
   return map
 }
 
+// Returns { artistId: { genres: string[], years: number[] } } by scanning all albums.
+export async function getArtistGenreMap() {
+  const map = {}
+  let offset = 0
+  const size = 500
+  while (true) {
+    let albums
+    try {
+      const data = await request('getAlbumList2', { type: 'alphabeticalByName', size, offset })
+      albums = ensureArray(data.albumList2?.album)
+    } catch { break }
+    for (const album of albums) {
+      if (!album.artistId) continue
+      if (!map[album.artistId]) map[album.artistId] = { genres: [], years: [] }
+      if (album.genre && !map[album.artistId].genres.includes(album.genre)) map[album.artistId].genres.push(album.genre)
+      if (album.year  && !map[album.artistId].years.includes(album.year))   map[album.artistId].years.push(album.year)
+    }
+    if (albums.length < size) break
+    offset += size
+  }
+  return map
+}
+
 export async function getArtist(id) {
   const data = await request('getArtist', { id })
   return {
@@ -186,9 +209,10 @@ export async function scrobble(id, submission = true) {
 }
 
 export async function search(query) {
-  const data = await request('search3', { query, artistCount: 5, albumCount: 8, songCount: 0 })
+  const data = await request('search3', { query, artistCount: 5, albumCount: 8, songCount: 8 })
   return {
     artists: ensureArray(data.searchResult3?.artist),
     albums:  ensureArray(data.searchResult3?.album),
+    songs:   ensureArray(data.searchResult3?.song),
   }
 }

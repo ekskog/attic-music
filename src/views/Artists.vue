@@ -4,14 +4,52 @@
     <!-- ARTISTS GRID -->
     <template v-if="view === 'grid'">
       <div class="border-b border-stone-200 bg-white flex-shrink-0">
-        <div class="px-4 md:px-8 pt-5 md:pt-7 pb-3 flex items-end justify-between gap-4">
-          <h1 class="font-serif text-2xl md:text-4xl font-semibold">Artists</h1>
-          <input
-            v-model="artistSearch"
-            type="text"
-            placeholder="Search…"
-            class="text-xs border border-stone-200 rounded px-2.5 py-1.5 outline-none focus:border-amber-700 w-28 md:w-36 mb-0.5 flex-shrink-0"
-          />
+        <div class="px-4 md:px-8 pt-5 md:pt-7 pb-3">
+          <h1 class="font-serif text-2xl md:text-4xl font-semibold mb-3">Artists</h1>
+          <div v-if="!loading" class="flex items-center gap-2 flex-wrap">
+
+            <!-- Genre -->
+            <div v-if="distinctGenres.length" class="relative">
+              <div v-if="showGenreDropdown" class="fixed inset-0 z-10" @click="showGenreDropdown = false"></div>
+              <button
+                class="relative z-20 text-xs border px-2.5 py-1.5 rounded transition-all"
+                :class="filterGenre ? 'border-amber-700 text-amber-700 bg-amber-50' : 'border-stone-200 text-stone-400 hover:border-amber-700 hover:text-amber-700 hover:bg-amber-50'"
+                @click="showGenreDropdown = !showGenreDropdown; showYearDropdown = false"
+              >{{ filterGenre || 'Genre' }} ▾</button>
+              <div v-if="showGenreDropdown" class="absolute top-full left-0 mt-1 bg-white border border-stone-200 shadow-md rounded z-20 min-w-[130px] max-h-60 overflow-y-auto">
+                <button class="block w-full text-left px-3 py-1.5 text-xs hover:bg-stone-50 transition-colors"
+                  :class="!filterGenre ? 'text-amber-700 font-medium' : 'text-stone-600'"
+                  @click="filterGenre = null; showGenreDropdown = false">All genres</button>
+                <button v-for="g in distinctGenres" :key="g"
+                  class="block w-full text-left px-3 py-1.5 text-xs hover:bg-stone-50 transition-colors"
+                  :class="filterGenre === g ? 'text-amber-700 font-medium' : 'text-stone-600'"
+                  @click="filterGenre = g; showGenreDropdown = false">{{ g }}</button>
+              </div>
+            </div>
+
+            <!-- Year -->
+            <div v-if="distinctYears.length" class="relative">
+              <div v-if="showYearDropdown" class="fixed inset-0 z-10" @click="showYearDropdown = false"></div>
+              <button
+                class="relative z-20 text-xs border px-2.5 py-1.5 rounded transition-all"
+                :class="filterYear ? 'border-amber-700 text-amber-700 bg-amber-50' : 'border-stone-200 text-stone-400 hover:border-amber-700 hover:text-amber-700 hover:bg-amber-50'"
+                @click="showYearDropdown = !showYearDropdown; showGenreDropdown = false"
+              >{{ filterYear || 'Year' }} ▾</button>
+              <div v-if="showYearDropdown" class="absolute top-full left-0 mt-1 bg-white border border-stone-200 shadow-md rounded z-20 min-w-[80px] max-h-60 overflow-y-auto">
+                <button class="block w-full text-left px-3 py-1.5 text-xs hover:bg-stone-50 transition-colors"
+                  :class="!filterYear ? 'text-amber-700 font-medium' : 'text-stone-600'"
+                  @click="filterYear = null; showYearDropdown = false">All years</button>
+                <button v-for="y in distinctYears" :key="y"
+                  class="block w-full text-left px-3 py-1.5 text-xs hover:bg-stone-50 transition-colors"
+                  :class="filterYear === y ? 'text-amber-700 font-medium' : 'text-stone-600'"
+                  @click="filterYear = y; showYearDropdown = false">{{ y }}</button>
+              </div>
+            </div>
+
+            <button v-if="filterGenre || filterYear"
+              class="text-xs text-stone-400 hover:text-amber-700 transition-colors"
+              @click="filterGenre = null; filterYear = null">Clear</button>
+          </div>
         </div>
         <div class="px-4 md:px-6 pb-2 flex flex-wrap gap-0.5">
           <button
@@ -30,21 +68,6 @@
         </div>
       </div>
       <div ref="scrollContainer" class="flex-1 overflow-y-auto px-6 py-4 pb-40 md:pb-24">
-
-        <!-- SEARCH RESULTS -->
-        <template v-if="artistSearch.trim()">
-          <div v-if="!filteredArtistSearch.length" class="flex items-center justify-center py-24 text-stone-400 text-sm">No artists found.</div>
-          <div v-else class="grid gap-4" style="grid-template-columns: repeat(auto-fill, minmax(120px, 1fr))">
-            <ArtistCard
-              v-for="artist in filteredArtistSearch" :key="artist.id"
-              :artist="artist"
-              @click="openArtist(artist)"
-            />
-          </div>
-        </template>
-
-        <!-- BROWSE VIEW -->
-        <template v-else>
 
         <!-- Recently Added -->
         <div v-if="recentArtists.length" class="mb-8">
@@ -85,8 +108,9 @@
         <div v-if="recentArtists.length || discoverArtists.length" class="border-b border-stone-200 mb-6"></div>
 
         <div v-if="loading" class="flex items-center justify-center py-24 text-stone-400 text-sm">Loading…</div>
+        <div v-else-if="(filterGenre || filterYear) && !filteredArtists.length" class="flex items-center justify-center py-24 text-stone-400 text-sm">No artists match the filter.</div>
         <template v-else>
-          <template v-for="group in artistIndex" :key="group.name">
+          <template v-for="group in filteredArtistIndex" :key="group.name">
           <div
             v-if="expandedGroups[group.name]"
             :ref="el => setGroupRef(group.name, el)"
@@ -106,8 +130,6 @@
           </div>
           </template>
         </template>
-
-        </template><!-- end browse view -->
       </div>
     </template>
 
@@ -185,8 +207,43 @@
               <img :src="coverUrl(currentAlbum.coverArt || currentAlbum.id)" :alt="currentAlbum.name" class="absolute inset-0 w-full h-full object-cover" @error="e => e.target.style.display='none'" />
             </div>
             <div>
-              <div class="text-xs uppercase tracking-widest text-stone-400 mb-2">
-                {{ ['Album', currentAlbum.year, currentAlbum.genre].filter(Boolean).join(' · ') }}
+              <div class="text-xs uppercase tracking-widest text-stone-400 mb-2 flex items-center flex-wrap gap-1">
+                <span>{{ ['Album', currentAlbum.year].filter(Boolean).join(' · ') }}</span>
+                <template v-if="editingGenre">
+                  <span>·</span>
+                  <div class="relative normal-case tracking-normal">
+                    <input
+                      ref="genreInputEl"
+                      v-model="genreInput"
+                      class="text-xs border-b border-stone-400 bg-transparent outline-none w-36"
+                      placeholder="Genre…"
+                      @keydown.enter="saveGenre"
+                      @keydown.escape="editingGenre = false"
+                      @focus="showGenreList = true"
+                      @input="showGenreList = true"
+                    />
+                    <div v-if="showGenreList && filteredGenreList.length" class="absolute top-full left-0 mt-1 bg-white border border-stone-200 shadow-lg rounded z-30 w-48 max-h-52 overflow-y-auto">
+                      <button
+                        v-for="g in filteredGenreList" :key="g"
+                        class="block w-full text-left px-3 py-1.5 text-xs text-stone-600 hover:bg-amber-50 hover:text-amber-700 transition-colors"
+                        @mousedown.prevent="selectGenre(g)"
+                      >{{ g }}</button>
+                    </div>
+                  </div>
+                  <button class="normal-case tracking-normal text-amber-700 hover:text-amber-800 font-medium text-xs" @click="saveGenre">Save</button>
+                  <button class="normal-case tracking-normal text-stone-400 hover:text-stone-600 text-xs" @click="editingGenre = false">Cancel</button>
+                </template>
+                <template v-else>
+                  <button
+                    class="normal-case tracking-normal flex items-center gap-1 group hover:text-amber-700 transition-colors cursor-pointer"
+                    @click="startEditGenre"
+                  >
+                    <span>· {{ albumGenre || 'Add genre' }}</span>
+                    <svg class="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2a2 2 0 01.586-1.414z" />
+                    </svg>
+                  </button>
+                </template>
               </div>
               <div class="font-serif text-3xl font-semibold mb-1.5">{{ currentAlbum.name }}</div>
               <div class="text-sm text-stone-400 mb-4">{{ currentAlbum.artist }}</div>
@@ -218,7 +275,8 @@
 import { ref, reactive, computed, nextTick, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePlayerStore } from '../stores/player'
-import { getArtists, getArtist, getAlbum, coverUrl, getNewestAlbums } from '../api/subsonic'
+import { getArtists, getArtist, getAlbum, coverUrl, getNewestAlbums, getArtistGenreMap } from '../api/subsonic'
+import { GENRES } from '../api/genres'
 import TrackItem  from '../components/TrackItem.vue'
 import ArtistCard from '../components/ArtistCard.vue'
 
@@ -267,18 +325,92 @@ function goToLetter(letter) {
 const recentArtists   = ref([])
 const discoverArtists = ref([])
 
-const artistSearch = ref('')
+const artistGenreMap    = ref({})  // artistId -> { genres: Set, years: Set }
+const filterGenre       = ref(null)
+const filterYear        = ref(null)
+const showGenreDropdown = ref(false)
+const showYearDropdown  = ref(false)
 
-const filteredArtistSearch = computed(() => {
-  const q = artistSearch.value.trim().toLowerCase()
-  if (!q) return []
-  return artistIndex.value.flatMap(g => g.artist).filter(a =>
-    a.name.toLowerCase().includes(q)
-  )
+const distinctGenres = computed(() => {
+  const seen = new Set()
+  for (const meta of Object.values(artistGenreMap.value)) {
+    for (const g of meta.genres) seen.add(g)
+  }
+  return [...seen].sort()
 })
 
-const currentAlbum = ref(null)
-const albumTracks  = ref([])
+const distinctYears = computed(() => {
+  const seen = new Set()
+  for (const meta of Object.values(artistGenreMap.value)) {
+    for (const y of meta.years) seen.add(y)
+  }
+  return [...seen].sort((a, b) => Number(b) - Number(a))
+})
+
+const filteredArtists = computed(() => {
+  if (!filterGenre.value && !filterYear.value) return null
+  return artistIndex.value.flatMap(g => g.artist).filter(a => {
+    const meta = artistGenreMap.value[a.id]
+    if (!meta) return false
+    if (filterGenre.value && !meta.genres.includes(filterGenre.value)) return false
+    if (filterYear.value  && !meta.years.includes(filterYear.value))   return false
+    return true
+  })
+})
+
+const filteredArtistIndex = computed(() => {
+  if (!filteredArtists.value) return artistIndex.value
+  const ids = new Set(filteredArtists.value.map(a => a.id))
+  return artistIndex.value
+    .map(g => ({ ...g, artist: g.artist.filter(a => ids.has(a.id)) }))
+    .filter(g => g.artist.length)
+})
+
+const currentAlbum  = ref(null)
+const albumTracks   = ref([])
+const editingGenre  = ref(false)
+const genreInput    = ref('')
+const genreInputEl  = ref(null)
+const genreVersion  = ref(0)
+const showGenreList = ref(false)
+
+const filteredGenreList = computed(() => {
+  const q = genreInput.value.toLowerCase().trim()
+  return q ? GENRES.filter(g => g.toLowerCase().includes(q)) : GENRES
+})
+
+const GENRE_PREFIX = 'attic_genre_'
+
+const albumGenre = computed(() => {
+  genreVersion.value
+  try { return localStorage.getItem(GENRE_PREFIX + currentAlbum.value?.id) || currentAlbum.value?.genre || null } catch { return currentAlbum.value?.genre || null }
+})
+
+async function startEditGenre() {
+  genreInput.value = albumGenre.value || ''
+  editingGenre.value = true
+  showGenreList.value = true
+  await nextTick()
+  genreInputEl.value?.focus()
+}
+
+function selectGenre(g) {
+  genreInput.value = g
+  showGenreList.value = false
+  saveGenre()
+}
+
+function saveGenre() {
+  if (!currentAlbum.value) return
+  const val = genreInput.value.trim()
+  if (val) localStorage.setItem(GENRE_PREFIX + currentAlbum.value.id, val)
+  else     localStorage.removeItem(GENRE_PREFIX + currentAlbum.value.id)
+  editingGenre.value = false
+  showGenreList.value = false
+  genreVersion.value++
+}
+
+watch(() => currentAlbum.value?.id, () => { editingGenre.value = false; showGenreList.value = false })
 
 async function loadArtists() {
   loading.value = true
@@ -376,6 +508,7 @@ watch(() => route.params.id, (id) => {
 })
 
 onMounted(async () => {
+  getArtistGenreMap().then(m => { artistGenreMap.value = m })
   const [, newestAlbums] = await Promise.all([loadArtists(), getNewestAlbums(100)])
   const seen = new Set()
   const artists = []
