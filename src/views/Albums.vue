@@ -6,7 +6,12 @@
       <div class="px-4 md:px-6 py-3 md:py-6 border-b border-stone-200 bg-white flex-shrink-0">
         <h1 class="font-serif hidden md:block text-3xl font-semibold mb-3">Albums</h1>
         <div v-if="albums.length" class="flex items-center gap-2 flex-wrap">
-          <span class="text-sm font-semibold mr-1 md:hidden">Albums</span>
+          <input
+            v-model="albumQuery"
+            type="search"
+            placeholder="Search albums…"
+            class="flex-1 min-w-0 text-sm bg-stone-100 rounded-lg px-3 py-1.5 outline-none focus:ring-1 focus:ring-amber-700 md:hidden"
+          />
 
           <!-- Genre -->
           <div v-if="distinctGenres.length" class="relative">
@@ -55,16 +60,17 @@
           </div>
 
           <button
-            v-if="filterGenre || filterYear"
+            v-if="filterGenre || filterYear || albumQuery"
             class="text-xs text-stone-400 hover:text-amber-700 transition-colors"
-            @click="filterGenre = null; filterYear = null"
+            @click="filterGenre = null; filterYear = null; albumQuery = ''"
           >Clear</button>
         </div>
       </div>
       <div class="flex-1 min-h-0 overflow-y-auto pb-40 md:pb-24">
 
         <!-- RECENTLY ADDED CAROUSEL -->
-        <div v-if="recentAlbums.length" class="px-4 pt-5 pb-4 border-b border-stone-100">
+        <div v-if="recentAlbums.length" class="px-4 pt-5 pb-4 border-b border-stone-100"
+          :class="{ 'hidden md:block': albumQuery || filterGenre || filterYear }">
           <div class="text-xs font-medium uppercase tracking-widest text-stone-400 mb-3">Recently Added</div>
           <div class="relative">
             <button
@@ -75,8 +81,7 @@
             <div ref="carousel" class="w-full flex gap-3 overflow-x-auto scroll-smooth" style="scrollbar-width:none;-ms-overflow-style:none" @scroll="onCarouselScroll">
               <div
                 v-for="album in recentAlbums" :key="album.id"
-                class="flex-shrink-0 cursor-pointer group"
-                style="width:calc(100% / 3 - 8px)"
+                class="flex-shrink-0 cursor-pointer group [width:calc(100%/3-8px)] md:w-36"
                 @click="openAlbum(album)"
               >
                 <div class="aspect-square bg-amber-50 mb-1.5 overflow-hidden relative rounded-lg">
@@ -99,13 +104,13 @@
         </div>
 
         <!-- DISCOVER -->
-        <div v-if="discoverAlbums.length" class="px-4 pt-5 pb-4 border-b border-stone-100">
+        <div v-if="discoverAlbums.length" class="px-4 pt-5 pb-4 border-b border-stone-100"
+          :class="{ 'hidden md:block': albumQuery || filterGenre || filterYear }">
           <div class="text-xs font-medium uppercase tracking-widest text-stone-400 mb-3">Discover</div>
           <div class="w-full flex gap-3 overflow-x-auto" style="scrollbar-width:none;-ms-overflow-style:none">
             <div
               v-for="album in discoverAlbums" :key="album.id"
-              class="flex-shrink-0 cursor-pointer group"
-              style="width:calc(100% / 3 - 8px)"
+              class="flex-shrink-0 cursor-pointer group [width:calc(100%/3-8px)] md:w-36"
               @click="openAlbum(album)"
             >
               <div class="aspect-square bg-amber-50 mb-1.5 overflow-hidden relative rounded-lg">
@@ -122,7 +127,8 @@
         </div>
 
         <!-- ALL ALBUMS GRID -->
-        <div class="px-4 py-4">
+        <div class="px-4 py-4"
+          :class="{ 'hidden md:block': !albumQuery && !filterGenre && !filterYear }">
           <div v-if="loading && !albums.length" class="flex items-center justify-center py-24 text-stone-400 text-sm">Loading…</div>
           <div v-else-if="!albums.length" class="flex flex-col items-center justify-center py-24 text-stone-400 gap-2">
             <span class="text-4xl">💿</span>
@@ -154,6 +160,7 @@
           <div ref="sentinel" class="h-8"></div>
           <div v-if="loading && albums.length" class="flex items-center justify-center py-4 text-stone-400 text-sm">Loading…</div>
         </div>
+
 
       </div>
     </template>
@@ -229,6 +236,7 @@ const albumTracks  = ref([])
 
 const filterGenre       = ref(null)
 const filterYear        = ref(null)
+const albumQuery        = ref('')
 const showGenreDropdown = ref(false)
 const showYearDropdown  = ref(false)
 
@@ -243,10 +251,10 @@ const distinctYears = computed(() => {
 })
 
 const filteredAlbums = computed(() => {
-  if (!filterGenre.value && !filterYear.value) return albums.value
   return albums.value.filter(a => {
     if (filterGenre.value && a.genre !== filterGenre.value) return false
     if (filterYear.value  && a.year  !== filterYear.value)  return false
+    if (albumQuery.value  && !a.name.toLowerCase().includes(albumQuery.value.toLowerCase())) return false
     return true
   })
 })

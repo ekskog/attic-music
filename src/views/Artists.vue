@@ -75,7 +75,7 @@
             <button v-if="mobileQuery" class="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 text-xs" @click="mobileQuery = ''">✕</button>
           </div>
           <!-- Genre filter -->
-          <div v-if="distinctGenres.length" class="relative flex-shrink-0">
+          <div class="relative flex-shrink-0">
             <div v-if="showGenreDropdown" class="fixed inset-0 z-10" @click="showGenreDropdown = false"></div>
             <button
               class="relative z-20 text-xs border px-2 py-2 rounded transition-all whitespace-nowrap"
@@ -93,7 +93,7 @@
             </div>
           </div>
           <!-- Year filter -->
-          <div v-if="distinctYears.length" class="relative flex-shrink-0">
+          <div class="relative flex-shrink-0">
             <div v-if="showYearDropdown" class="fixed inset-0 z-10" @click="showYearDropdown = false"></div>
             <button
               class="relative z-20 text-xs border px-2 py-2 rounded transition-all"
