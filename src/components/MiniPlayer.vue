@@ -5,47 +5,50 @@
     :style="{ bottom: '64px' }"
     @click="emit('expand')"
   >
+    <!-- PROGRESS BAR (top) -->
+    <div class="absolute top-0 left-0 right-0 h-0.5 bg-stone-100">
+      <div class="h-full bg-amber-700 transition-all" :style="{ width: player.progressPct + '%' }"></div>
+    </div>
+
     <!-- COVER -->
-    <div class="w-10 h-10 bg-amber-50 flex-shrink-0 overflow-hidden flex items-center justify-center text-lg rounded">
+    <div class="w-12 h-12 bg-amber-50 flex-shrink-0 overflow-hidden flex items-center justify-center text-xl rounded-lg">
       <img v-if="player.currentTrack.coverArt" :src="coverUrl(player.currentTrack.coverArt)" class="w-full h-full object-cover" @error="onImgError" />
       <span v-else>🎵</span>
     </div>
 
     <!-- TRACK INFO -->
     <div class="flex-1 overflow-hidden">
-      <div class="text-sm font-medium truncate">{{ player.currentTrack.title }}</div>
-      <div class="text-xs text-stone-400 truncate">
-        {{ player.currentTrack.artist }}
-        <span v-if="player.currentTrack.album"> · {{ player.currentTrack.album }}</span>
-      </div>
+      <div class="text-sm font-medium truncate leading-tight">{{ player.currentTrack.title }}</div>
+      <div class="text-xs text-stone-400 truncate mt-0.5">{{ player.currentTrack.artist }}</div>
     </div>
 
     <!-- CONTROLS -->
-    <div class="flex items-center gap-3 flex-shrink-0">
+    <div class="flex items-center gap-1 flex-shrink-0">
+      <button
+        class="w-9 h-9 flex items-center justify-center text-stone-400 active:text-amber-700"
+        @click.stop="player.prevTrack()"
+      >
+        <SkipBack :size="18" />
+      </button>
       <button
         class="w-9 h-9 flex items-center justify-center text-stone-700 active:text-amber-700"
         @click.stop="player.togglePlay()"
       >
-        <Pause v-if="player.isPlaying" :size="20" />
-        <Play v-else :size="20" class="translate-x-px" />
+        <Pause v-if="player.isPlaying" :size="22" />
+        <Play v-else :size="22" class="translate-x-px" />
       </button>
       <button
         class="w-9 h-9 flex items-center justify-center text-stone-400 active:text-amber-700"
         @click.stop="player.nextTrack()"
       >
-        <SkipForward :size="20" />
+        <SkipForward :size="18" />
       </button>
-    </div>
-
-    <!-- PROGRESS BAR -->
-    <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-stone-100">
-      <div class="h-full bg-amber-700 transition-all" :style="{ width: player.progressPct + '%' }"></div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { Play, Pause, SkipForward } from 'lucide-vue-next'
+import { Play, Pause, SkipBack, SkipForward } from 'lucide-vue-next'
 import { usePlayerStore } from '../stores/player'
 import { coverUrl } from '../api/subsonic'
 

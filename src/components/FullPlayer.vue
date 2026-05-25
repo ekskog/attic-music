@@ -41,8 +41,21 @@
         <!-- PLAYER VIEW -->
         <template v-else>
 
+          <!-- ALBUM ART -->
+          <div v-if="!lyricsView" class="flex-1 min-h-0 flex items-center justify-center py-2">
+            <div class="w-full aspect-square max-h-full bg-amber-50 overflow-hidden shadow-2xl rounded-2xl">
+              <img
+                v-if="player.currentTrack?.coverArt"
+                :src="coverUrl(player.currentTrack.coverArt, 600)"
+                class="w-full h-full object-cover"
+                @error="onImgError"
+              />
+              <div v-else class="w-full h-full flex items-center justify-center text-8xl">🎵</div>
+            </div>
+          </div>
+
           <!-- ART / LYRICS TOGGLE -->
-          <div class="flex justify-center gap-1 mb-3 flex-shrink-0">
+          <div class="flex justify-center gap-1 mt-2 mb-1 flex-shrink-0">
             <button
               class="px-4 py-1 rounded-full text-xs font-medium transition-colors"
               :class="lyricsView ? 'bg-stone-100 text-stone-400' : 'bg-stone-900 text-white'"
@@ -55,21 +68,8 @@
             >Lyrics</button>
           </div>
 
-          <!-- ALBUM ART -->
-          <div v-if="!lyricsView" class="flex-1 flex items-center justify-center py-2">
-            <div class="w-full max-w-xs aspect-square bg-amber-50 overflow-hidden shadow-2xl rounded-sm">
-              <img
-                v-if="player.currentTrack?.coverArt"
-                :src="coverUrl(player.currentTrack.coverArt, 600)"
-                class="w-full h-full object-cover"
-                @error="onImgError"
-              />
-              <div v-else class="w-full h-full flex items-center justify-center text-8xl">🎵</div>
-            </div>
-          </div>
-
           <!-- LYRICS PANEL -->
-          <div v-else class="flex-1 overflow-y-auto py-2" ref="lyricsEl">
+          <div v-if="lyricsView" class="flex-1 overflow-y-auto py-2" ref="lyricsEl">
             <div v-if="lyricsLoading" class="flex items-center justify-center h-full text-stone-300 text-sm">Loading…</div>
             <template v-else-if="!lyrics">
               <div class="text-stone-300 text-sm text-center pt-12 pb-4">No lyrics found</div>
@@ -102,14 +102,13 @@
           </div>
 
           <!-- TRACK INFO -->
-          <div class="flex-shrink-0 mb-6">
-            <div class="text-xl font-semibold truncate">{{ player.currentTrack?.title }}</div>
-            <div class="text-stone-400 truncate mt-0.5">{{ player.currentTrack?.artist }}</div>
-            <div v-if="player.currentTrack?.album" class="text-sm text-stone-300 truncate mt-0.5">{{ player.currentTrack.album }}</div>
+          <div class="flex-shrink-0 mb-3">
+            <div class="text-2xl font-semibold truncate">{{ player.currentTrack?.title }}</div>
+            <div class="text-base text-stone-400 truncate mt-0.5">{{ player.currentTrack?.artist }}</div>
           </div>
 
           <!-- PROGRESS -->
-          <div class="flex-shrink-0 mb-6">
+          <div class="flex-shrink-0 mb-4">
             <div
               ref="progressEl"
               class="w-full h-1 bg-stone-200 rounded-full cursor-pointer mb-2"
@@ -124,7 +123,7 @@
           </div>
 
           <!-- VOLUME -->
-          <div class="flex-shrink-0 flex items-center gap-3 mb-6">
+          <div class="flex-shrink-0 flex items-center gap-3 mb-4">
             <button class="text-stone-400 active:text-amber-700 p-1" @click="player.toggleMute()">
               <VolumeX v-if="player.volume === 0" :size="20" />
               <Volume1 v-else-if="player.volume < 0.5" :size="20" />
@@ -139,7 +138,7 @@
           </div>
 
           <!-- CONTROLS -->
-          <div class="flex-shrink-0 mb-12">
+          <div class="flex-shrink-0 mb-8">
             <div class="flex items-center justify-between mb-6">
               <div class="flex flex-col items-center gap-1">
                 <button
@@ -153,11 +152,11 @@
                 <SkipBack :size="32" />
               </button>
               <button
-                class="w-16 h-16 rounded-full bg-stone-900 text-white flex items-center justify-center active:bg-amber-700 transition-colors shadow-lg"
+                class="w-20 h-20 rounded-full bg-stone-900 text-white flex items-center justify-center active:bg-amber-700 transition-colors shadow-lg"
                 @click="player.togglePlay()"
               >
-                <Pause v-if="player.isPlaying" :size="28" />
-                <Play v-else :size="28" class="translate-x-0.5" />
+                <Pause v-if="player.isPlaying" :size="32" />
+                <Play v-else :size="32" class="translate-x-0.5" />
               </button>
               <button class="p-2 text-stone-700 active:text-amber-700" @click="player.nextTrack()">
                 <SkipForward :size="32" />

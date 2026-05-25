@@ -3,9 +3,10 @@
 
     <!-- ALBUM LIST -->
     <template v-if="!currentAlbum">
-      <div class="px-6 py-6 border-b border-stone-200 bg-white flex-shrink-0">
-        <h1 class="font-serif text-3xl font-semibold mb-3">Albums</h1>
+      <div class="px-4 md:px-6 py-3 md:py-6 border-b border-stone-200 bg-white flex-shrink-0">
+        <h1 class="font-serif hidden md:block text-3xl font-semibold mb-3">Albums</h1>
         <div v-if="albums.length" class="flex items-center gap-2 flex-wrap">
+          <span class="text-sm font-semibold mr-1 md:hidden">Albums</span>
 
           <!-- Genre -->
           <div v-if="distinctGenres.length" class="relative">

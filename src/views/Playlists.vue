@@ -3,8 +3,8 @@
 
     <!-- PLAYLIST LIST -->
     <template v-if="!currentPlaylist">
-      <div class="px-6 py-6 border-b border-stone-200 bg-white flex-shrink-0 flex items-center justify-between gap-4">
-        <h1 class="font-serif text-3xl font-semibold">Playlists</h1>
+      <div class="px-4 md:px-6 py-3 md:py-6 border-b border-stone-200 bg-white flex-shrink-0 flex items-center justify-between gap-4">
+        <h1 class="font-serif text-sm font-semibold md:text-3xl">Playlists</h1>
         <div v-if="creating" class="flex items-center gap-2">
           <input
             ref="newNameInput"

@@ -4,9 +4,10 @@
     <!-- ARTISTS GRID -->
     <template v-if="view === 'grid'">
       <div class="border-b border-stone-200 bg-white flex-shrink-0">
-        <div class="px-4 md:px-8 pt-5 md:pt-7 pb-3">
-          <h1 class="font-serif text-2xl md:text-4xl font-semibold mb-3">Artists</h1>
+        <div class="px-4 md:px-8 pt-3 md:pt-7 pb-3">
+          <h1 class="font-serif hidden md:block text-4xl font-semibold mb-3">Artists</h1>
           <div v-if="!loading" class="flex items-center gap-2 flex-wrap">
+            <span class="text-sm font-semibold mr-1 md:hidden">Artists</span>
 
             <!-- Genre -->
             <div v-if="distinctGenres.length" class="relative">
