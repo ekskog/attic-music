@@ -85,6 +85,29 @@
       </button>
     </div>
 
+    <!-- DESKTOP LYRICS PANEL -->
+    <Transition name="queue">
+      <div v-if="showLyrics && player.currentTrack" class="fixed bottom-20 right-0 w-72 max-h-96 bg-white border border-stone-200 border-b-0 flex flex-col shadow-lg z-40">
+        <div class="px-4 py-3 border-b border-stone-200 flex-shrink-0">
+          <span class="text-xs font-medium uppercase tracking-widest">Lyrics</span>
+        </div>
+        <div class="overflow-y-auto flex-1 px-4 py-3" ref="lyricsEl">
+          <div v-if="lyricsLoading" class="text-xs text-stone-300 text-center py-8">Loading…</div>
+          <div v-else-if="!lyrics" class="text-xs text-stone-300 text-center py-8">No lyrics found</div>
+          <template v-else-if="lyrics.synced">
+            <p
+              v-for="(line, i) in lyrics.synced"
+              :key="i"
+              :ref="el => { if (el) lineEls[i] = el }"
+              class="text-sm leading-relaxed py-0.5 transition-all duration-300"
+              :class="i === activeLine ? 'text-stone-900 font-semibold' : 'text-stone-300'"
+            >{{ line.text }}</p>
+          </template>
+          <p v-else class="text-sm text-stone-500 leading-relaxed whitespace-pre-wrap">{{ lyrics.plain }}</p>
+        </div>
+      </div>
+    </Transition>
+
     <!-- DESKTOP QUEUE PANEL -->
     <Transition name="queue">
       <div v-if="showQueue && player.queue.length" class="fixed bottom-20 right-0 w-72 max-h-96 bg-white border border-stone-200 border-b-0 flex flex-col shadow-lg z-40">
@@ -128,29 +151,6 @@
     </Transition>
   </footer>
 
-  <!-- DESKTOP LYRICS PANEL -->
-  <Transition name="queue">
-    <div v-if="showLyrics && player.currentTrack" class="fixed bottom-20 right-0 w-72 max-h-96 bg-white border border-stone-200 border-b-0 flex flex-col shadow-lg z-40">
-      <div class="px-4 py-3 border-b border-stone-200 flex-shrink-0">
-        <span class="text-xs font-medium uppercase tracking-widest">Lyrics</span>
-      </div>
-      <div class="overflow-y-auto flex-1 px-4 py-3" ref="lyricsEl">
-        <div v-if="lyricsLoading" class="text-xs text-stone-300 text-center py-8">Loading…</div>
-        <div v-else-if="!lyrics" class="text-xs text-stone-300 text-center py-8">No lyrics found</div>
-        <template v-else-if="lyrics.synced">
-          <p
-            v-for="(line, i) in lyrics.synced"
-            :key="i"
-            :ref="el => { if (el) lineEls[i] = el }"
-            class="text-sm leading-relaxed py-0.5 transition-all duration-300"
-            :class="i === activeLine ? 'text-stone-900 font-semibold' : 'text-stone-300'"
-          >{{ line.text }}</p>
-        </template>
-        <p v-else class="text-sm text-stone-500 leading-relaxed whitespace-pre-wrap">{{ lyrics.plain }}</p>
-      </div>
-    </div>
-  </Transition>
-
   <!-- MOBILE MINI PLAYER -->
   <MiniPlayer @expand="fullPlayerOpen = true" />
 
@@ -173,9 +173,9 @@ import BottomNav  from './BottomNav.vue'
 
 const player         = usePlayerStore()
 const showQueue      = ref(false)
+const showLyrics     = ref(false)
 const fullPlayerOpen = ref(false)
 const progressEl     = ref(null)
-const showLyrics     = ref(false)
 const lyrics         = ref(null)
 const lyricsLoading  = ref(false)
 const lyricsEl       = ref(null)
@@ -215,8 +215,8 @@ async function loadLyrics() {
   finally { lyricsLoading.value = false }
 }
 
-const savingPlaylist   = ref(false)
-const playlistName     = ref('')
+const savingPlaylist    = ref(false)
+const playlistName      = ref('')
 const playlistNameInput = ref(null)
 
 function handleSeek(event) {

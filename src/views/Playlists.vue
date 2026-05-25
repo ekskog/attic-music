@@ -3,8 +3,25 @@
 
     <!-- PLAYLIST LIST -->
     <template v-if="!currentPlaylist">
-      <div class="px-6 py-6 border-b border-stone-200 bg-white flex-shrink-0">
+      <div class="px-6 py-6 border-b border-stone-200 bg-white flex-shrink-0 flex items-center justify-between gap-4">
         <h1 class="font-serif text-3xl font-semibold">Playlists</h1>
+        <div v-if="creating" class="flex items-center gap-2">
+          <input
+            ref="newNameInput"
+            v-model="newName"
+            class="text-xs border border-stone-200 rounded px-2 py-1.5 w-36 outline-none focus:border-amber-700"
+            placeholder="Playlist name…"
+            @keydown.enter="createNew"
+            @keydown.esc="creating = false"
+          />
+          <button class="text-xs text-amber-700 hover:text-amber-800 font-medium transition-colors" @click="createNew">Create</button>
+          <button class="text-xs text-stone-400 hover:text-stone-600 transition-colors" @click="creating = false">✕</button>
+        </div>
+        <button
+          v-else
+          class="text-xs border border-stone-200 px-2.5 py-1.5 rounded text-stone-400 hover:border-amber-700 hover:text-amber-700 hover:bg-amber-50 transition-all flex-shrink-0"
+          @click="startCreating"
+        >+ New</button>
       </div>
       <div class="flex-1 overflow-y-auto px-4 py-4 pb-40 md:pb-24">
         <div v-if="loading" class="flex items-center justify-center py-24 text-stone-400 text-sm">Loading…</div>
@@ -90,20 +107,43 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, nextTick, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePlayerStore } from '../stores/player'
-import { getPlaylists, getPlaylist, deletePlaylist, updatePlaylist, coverUrl } from '../api/subsonic'
+import { usePlaylistStore } from '../stores/playlist'
+import { getPlaylists, getPlaylist, createPlaylist, deletePlaylist, updatePlaylist, coverUrl } from '../api/subsonic'
 import TrackItem from '../components/TrackItem.vue'
 
-const route  = useRoute()
-const router = useRouter()
-const player = usePlayerStore()
+const route          = useRoute()
+const router         = useRouter()
+const player         = usePlayerStore()
+const playlistStore  = usePlaylistStore()
 
 const loading         = ref(false)
 const playlists       = ref([])
 const currentPlaylist = ref(null)
 const playlistTracks  = ref([])
+
+const creating    = ref(false)
+const newName     = ref('')
+const newNameInput = ref(null)
+
+async function startCreating() {
+  creating.value = true
+  newName.value  = ''
+  await nextTick()
+  newNameInput.value?.focus()
+}
+
+async function createNew() {
+  const name = newName.value.trim()
+  if (!name) return
+  await createPlaylist(name)
+  creating.value = false
+  newName.value  = ''
+  await loadPlaylists()
+  playlistStore.load()
+}
 
 async function loadPlaylists() {
   loading.value = true
