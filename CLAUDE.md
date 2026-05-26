@@ -115,10 +115,12 @@ src/
 - Gonic does **not** populate `artist.coverArt` in `getArtists` — the field is always empty regardless of indexing
 - A dedicated Go sidecar (`artist-images/`) serves images directly from the NFS volume, bypassing the Subsonic API entirely
 - Gonic does **not** serve standalone `cover.jpg` files via `getCoverArt` — it only returns embedded ID3 art; the sidecar is the authoritative source for both artist and album cover art
-- `ArtistCard` image: sidecar (`/artist-images/avatar?name=<artist>`) → letter placeholder
-- Album cover: sidecar (`/artist-images/album?artist=<artist>&album=<album>`) → 💿 placeholder. No Subsonic fallback for covers.
-- The artist detail view uses sidecar only
-- The sidecar builds two maps at startup and rescans every 5 minutes: artist covers (`normalize(artist)` → path) and album covers (`normalize(artist)|normalize(album)` → path)
+- `ArtistCard` image fallback chain: sidecar (`/artist-images/avatar?name=<artist>`) → Subsonic `getCoverArt?id=<artistId>` → letter placeholder
+- Album cover fallback chain (carousel, grid, detail): Subsonic `getCoverArt?id=<albumId>` → sidecar (`/artist-images/album?artist=<artist>&album=<album>`) → "Add cover" upload button → 💿 placeholder
+- Album detail views (`Artists.vue`, `Albums.vue`) use reactive `albumDetailCoverSrc`/`albumDetailCoverState` refs (`'loading'` → `'sidecar'` → `'failed'`) to drive the fallback chain; when both sources fail, an "Add cover" label/file-input is shown
+- Album grid cards (artist detail view) use the DOM-based `onAlbumCoverError(e, album)` pattern (same as Albums.vue carousel/grid) — tries sidecar via `dataset.triedSidecar`, then hides
+- The sidecar builds three maps at startup and rescans every 5 minutes: artist covers (`normalize(artist)` → path), album covers (`normalize(artist)|normalize(album)` → path), and album dirs (`normalize(artist)|normalize(album)` → directory path, regardless of whether a cover exists)
+- `albumDirMap` enables the `/upload` POST endpoint: accepts `artist` + `album` query params and a `cover` multipart file, writes it as `cover.jpg` into the album directory on the NFS share, and updates `albumCoverMap` immediately; after upload the frontend requests the sidecar URL with `?t=<timestamp>` to bust browser cache
 - Album folders are named `YYYY-album_name_with_underscores`; the sidecar strips the leading `YYYY-` before normalizing so it matches the API album name
 - The artist folder name corresponds to the **Album Artist** mp3 tag (e.g. `bob_seger`), not the track Artist tag (e.g. `bob seger & the silver bullet band`); the frontend uses `album.albumArtist || album.artist` when building the sidecar URL
 - Directory structure scanned: `<root>/<letter>/<artist_folder>/cover.jpg` (artist) and `<root>/<letter>/<artist_folder>/YYYY-album_folder/cover.jpg` (album)

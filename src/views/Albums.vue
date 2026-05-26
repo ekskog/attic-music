@@ -181,7 +181,19 @@
           <div class="flex gap-4 mb-6 items-end">
             <div class="w-28 h-28 flex-shrink-0 bg-amber-50 overflow-hidden rounded-lg shadow-md relative">
               <div class="w-full h-full flex items-center justify-center text-4xl">💿</div>
-              <img :src="coverUrl(currentAlbum.coverArt || currentAlbum.id)" :alt="currentAlbum.name" class="absolute inset-0 w-full h-full object-cover" @error="onAlbumCoverError($event, currentAlbum)" />
+              <img v-if="albumDetailCoverSrc && albumDetailCoverState !== 'failed'"
+                :src="albumDetailCoverSrc"
+                :alt="currentAlbum.name"
+                class="absolute inset-0 w-full h-full object-cover"
+                @error="onAlbumDetailCoverError"
+              />
+              <label v-if="albumDetailCoverState === 'failed'"
+                class="absolute inset-0 flex flex-col items-center justify-center cursor-pointer gap-1"
+                title="Upload cover art"
+              >
+                <span class="text-xs text-stone-400 font-medium">Add cover</span>
+                <input type="file" accept="image/*" class="hidden" @change="uploadAlbumCover" />
+              </label>
             </div>
             <div class="flex-1 overflow-hidden">
               <div class="text-xs uppercase tracking-widest text-stone-400 mb-1">
@@ -233,6 +245,8 @@ const recentAlbums   = ref([])
 const discoverAlbums = ref([])
 const currentAlbum = ref(null)
 const albumTracks  = ref([])
+const albumDetailCoverSrc   = ref(null)
+const albumDetailCoverState = ref('loading') // 'loading' | 'sidecar' | 'failed'
 
 const filterGenre       = ref(null)
 const filterYear        = ref(null)
@@ -321,11 +335,13 @@ function setupObserver() {
 
 async function openAlbum(album) {
   loading.value = true
+  albumDetailCoverState.value = 'loading'
   router.push({ name: 'album-detail', params: { id: album.id } })
   try {
     const data = await getAlbum(album.id)
     currentAlbum.value = { ...album, ...data.info }
     albumTracks.value  = data.tracks
+    albumDetailCoverSrc.value = coverUrl(currentAlbum.value.coverArt || currentAlbum.value.id)
   } finally { loading.value = false }
 }
 
@@ -393,12 +409,41 @@ onUnmounted(() => {
 
 async function openAlbumById(id) {
   loading.value = true
+  albumDetailCoverState.value = 'loading'
   router.push({ name: 'album-detail', params: { id } })
   try {
     const data = await getAlbum(id)
     currentAlbum.value = data.info
     albumTracks.value  = data.tracks
+    albumDetailCoverSrc.value = coverUrl(currentAlbum.value.coverArt || currentAlbum.value.id)
   } finally { loading.value = false }
+}
+
+function onAlbumDetailCoverError() {
+  if (albumDetailCoverState.value === 'loading') {
+    const artist = currentAlbum.value.albumArtist || currentAlbum.value.artist
+    albumDetailCoverSrc.value = `/artist-images/album?artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(currentAlbum.value.name)}`
+    albumDetailCoverState.value = 'sidecar'
+  } else {
+    albumDetailCoverState.value = 'failed'
+  }
+}
+
+async function uploadAlbumCover(e) {
+  const file = e.target.files[0]
+  if (!file || !currentAlbum.value) return
+  const artist = currentAlbum.value.albumArtist || currentAlbum.value.artist
+  const album  = currentAlbum.value.name
+  const form = new FormData()
+  form.append('cover', file)
+  const res = await fetch(
+    `/artist-images/upload?artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}`,
+    { method: 'POST', body: form }
+  )
+  if (res.ok) {
+    albumDetailCoverSrc.value = `/artist-images/album?artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}&t=${Date.now()}`
+    albumDetailCoverState.value = 'sidecar'
+  }
 }
 
 watch(() => route.params.id, (id) => {

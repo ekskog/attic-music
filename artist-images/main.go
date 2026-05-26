@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -12,6 +13,7 @@ import (
 
 var coverMap      = map[string]string{}
 var albumCoverMap = map[string]string{}
+var albumDirMap   = map[string]string{}
 var nonAlnum   = regexp.MustCompile(`[^a-z0-9]+`)
 var yearPrefix = regexp.MustCompile(`^\d{4}-`)
 var logRequests bool
@@ -59,8 +61,9 @@ func normalize(s string) string {
 
 
 func buildMap(root string) {
-	freshArtist := map[string]string{}
-	freshAlbum  := map[string]string{}
+	freshArtist    := map[string]string{}
+	freshAlbum     := map[string]string{}
+	freshAlbumDirs := map[string]string{}
 	letters, err := os.ReadDir(root)
 	if err != nil {
 		log.Printf("cannot read root %q: %v", root, err)
@@ -94,18 +97,21 @@ func buildMap(root string) {
 				if !album.IsDir() {
 					continue
 				}
-				albumCover := filepath.Join(artistDir, album.Name(), "cover.jpg")
+				albumName := yearPrefix.ReplaceAllString(album.Name(), "")
+				key := normalize(artist.Name()) + "|" + normalize(albumName)
+				albumDir := filepath.Join(artistDir, album.Name())
+				freshAlbumDirs[key] = albumDir
+				albumCover := filepath.Join(albumDir, "cover.jpg")
 				if _, err := os.Stat(albumCover); err == nil {
-					albumName := yearPrefix.ReplaceAllString(album.Name(), "")
-					key := normalize(artist.Name()) + "|" + normalize(albumName)
 					freshAlbum[key] = albumCover
 				}
 			}
 		}
 	}
-	coverMap = freshArtist
+	coverMap     = freshArtist
 	albumCoverMap = freshAlbum
-	log.Printf("indexed %d artist covers, %d album covers from %s", len(coverMap), len(albumCoverMap), root)
+	albumDirMap  = freshAlbumDirs
+	log.Printf("indexed %d artist covers, %d album covers (%d dirs) from %s", len(coverMap), len(albumCoverMap), len(albumDirMap), root)
 }
 
 func main() {
@@ -170,6 +176,51 @@ func main() {
 		if logRequests {
 			log.Printf("HIT   %q (%.0fms)", name, float64(time.Since(start).Microseconds())/1000)
 		}
+	})
+
+	http.HandleFunc("/upload", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		artist := r.URL.Query().Get("artist")
+		album  := r.URL.Query().Get("album")
+		if artist == "" || album == "" {
+			http.Error(w, "missing artist or album param", http.StatusBadRequest)
+			return
+		}
+		key := normalize(artist) + "|" + normalize(album)
+		dir, ok := albumDirMap[key]
+		if !ok {
+			http.Error(w, "album directory not found", http.StatusNotFound)
+			return
+		}
+		if err := r.ParseMultipartForm(10 << 20); err != nil {
+			http.Error(w, "invalid multipart form", http.StatusBadRequest)
+			return
+		}
+		file, _, err := r.FormFile("cover")
+		if err != nil {
+			http.Error(w, "missing cover file", http.StatusBadRequest)
+			return
+		}
+		defer file.Close()
+		dst := filepath.Join(dir, "cover.jpg")
+		out, err := os.Create(dst)
+		if err != nil {
+			log.Printf("upload: failed to create %s: %v", dst, err)
+			http.Error(w, "failed to save file", http.StatusInternalServerError)
+			return
+		}
+		defer out.Close()
+		if _, err := io.Copy(out, file); err != nil {
+			log.Printf("upload: failed to write %s: %v", dst, err)
+			http.Error(w, "failed to write file", http.StatusInternalServerError)
+			return
+		}
+		albumCoverMap[key] = dst
+		log.Printf("uploaded cover for %q / %q → %s", artist, album, dst)
+		w.WriteHeader(http.StatusOK)
 	})
 
 	log.Printf("listening on :8080 (LOG_REQUESTS=%v)", logRequests)

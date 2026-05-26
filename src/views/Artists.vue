@@ -252,7 +252,7 @@
           >
             <div class="aspect-square bg-amber-50 mb-1 overflow-hidden relative rounded">
               <div class="w-full h-full flex items-center justify-center text-2xl">💿</div>
-              <img :src="coverUrl(album.coverArt || album.id)" :alt="album.name" class="absolute inset-0 w-full h-full object-cover" @error="e => e.target.style.display='none'" />
+              <img :src="coverUrl(album.coverArt || album.id)" :alt="album.name" class="absolute inset-0 w-full h-full object-cover" @error="onAlbumCoverError($event, album)" />
               <div class="absolute inset-0 bg-black/25 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded">
                 <button class="w-7 h-7 rounded-full bg-white flex items-center justify-center text-xs pl-0.5" @click.stop="playAlbum(album)">▶</button>
               </div>
@@ -286,7 +286,19 @@
           <div class="flex gap-6 mb-8 items-end">
             <div class="w-40 h-40 flex-shrink-0 bg-amber-50 overflow-hidden relative">
               <div class="w-full h-full flex items-center justify-center text-5xl">💿</div>
-              <img :src="coverUrl(currentAlbum.coverArt || currentAlbum.id)" :alt="currentAlbum.name" class="absolute inset-0 w-full h-full object-cover" @error="e => e.target.style.display='none'" />
+              <img v-if="albumDetailCoverSrc && albumDetailCoverState !== 'failed'"
+                :src="albumDetailCoverSrc"
+                :alt="currentAlbum.name"
+                class="absolute inset-0 w-full h-full object-cover"
+                @error="onAlbumDetailCoverError"
+              />
+              <label v-if="albumDetailCoverState === 'failed'"
+                class="absolute inset-0 flex flex-col items-center justify-center cursor-pointer gap-1"
+                title="Upload cover art"
+              >
+                <span class="text-xs text-stone-400 font-medium">Add cover</span>
+                <input type="file" accept="image/*" class="hidden" @change="uploadAlbumCover" />
+              </label>
             </div>
             <div>
               <div class="text-xs uppercase tracking-widest text-stone-400 mb-2 flex items-center flex-wrap gap-1">
@@ -460,6 +472,8 @@ const filteredArtistIndex = computed(() => {
 
 const currentAlbum  = ref(null)
 const albumTracks   = ref([])
+const albumDetailCoverSrc   = ref(null)
+const albumDetailCoverState = ref('loading') // 'loading' | 'sidecar' | 'failed'
 const editingGenre  = ref(false)
 const genreInput    = ref('')
 const genreInputEl  = ref(null)
@@ -553,12 +567,52 @@ function onArtistDetailImgError() {
 
 async function openAlbum(album) {
   loading.value = true
+  albumDetailCoverState.value = 'loading'
   try {
     const data = await getAlbum(album.id)
     currentAlbum.value = { ...album, ...data.info }
     albumTracks.value  = data.tracks
+    albumDetailCoverSrc.value = coverUrl(currentAlbum.value.coverArt || currentAlbum.value.id)
     view.value = 'album'
   } finally { loading.value = false }
+}
+
+function onAlbumCoverError(e, album) {
+  const img = e.target
+  if (!img.dataset.triedSidecar) {
+    img.dataset.triedSidecar = '1'
+    const artist = album.albumArtist || album.artist
+    img.src = `/artist-images/album?artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album.name)}`
+  } else {
+    img.style.display = 'none'
+  }
+}
+
+function onAlbumDetailCoverError() {
+  if (albumDetailCoverState.value === 'loading') {
+    const artist = currentAlbum.value.albumArtist || currentAlbum.value.artist
+    albumDetailCoverSrc.value = `/artist-images/album?artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(currentAlbum.value.name)}`
+    albumDetailCoverState.value = 'sidecar'
+  } else {
+    albumDetailCoverState.value = 'failed'
+  }
+}
+
+async function uploadAlbumCover(e) {
+  const file = e.target.files[0]
+  if (!file || !currentAlbum.value) return
+  const artist = currentAlbum.value.albumArtist || currentAlbum.value.artist
+  const album  = currentAlbum.value.name
+  const form = new FormData()
+  form.append('cover', file)
+  const res = await fetch(
+    `/artist-images/upload?artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}`,
+    { method: 'POST', body: form }
+  )
+  if (res.ok) {
+    albumDetailCoverSrc.value = `/artist-images/album?artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}&t=${Date.now()}`
+    albumDetailCoverState.value = 'sidecar'
+  }
 }
 
 
