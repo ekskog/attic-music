@@ -276,9 +276,14 @@
           <span class="opacity-40">›</span>
           <span class="cursor-pointer hover:text-amber-700 transition-colors" @click="view = 'artist'">{{ currentArtist.name }}</span>
           <span class="opacity-40">›</span>
-          <span>{{ currentAlbum.name }}</span>
+          <span>{{ displayTitle }}</span>
         </div>
-        <h1 class="font-serif text-2xl md:text-4xl font-semibold truncate">{{ currentAlbum.name }}</h1>
+        <div class="flex items-center gap-2">
+          <h1 class="font-serif text-2xl md:text-4xl font-semibold truncate">{{ displayTitle }}</h1>
+          <button class="flex-shrink-0 p-1.5 text-stone-300 hover:text-amber-700 transition-colors" title="Edit tags" @click="openTagEditor">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2a2 2 0 01.586-1.414z" /></svg>
+          </button>
+        </div>
       </div>
       <div class="flex-1 overflow-y-auto px-4 md:px-8 py-4 md:py-6 pb-40 md:pb-24">
         <div v-if="loading" class="flex items-center justify-center py-24 text-stone-400 text-sm">Loading…</div>
@@ -301,46 +306,12 @@
               </label>
             </div>
             <div>
-              <div class="text-xs uppercase tracking-widest text-stone-400 mb-2 flex items-center flex-wrap gap-1">
-                <span>{{ ['Album', currentAlbum.year].filter(Boolean).join(' · ') }}</span>
-                <template v-if="editingGenre">
-                  <span>·</span>
-                  <div class="relative normal-case tracking-normal">
-                    <input
-                      ref="genreInputEl"
-                      v-model="genreInput"
-                      class="text-xs border-b border-stone-400 bg-transparent outline-none w-36"
-                      placeholder="Genre…"
-                      @keydown.enter="saveGenre"
-                      @keydown.escape="editingGenre = false"
-                      @focus="showGenreList = true"
-                      @input="showGenreList = true"
-                    />
-                    <div v-if="showGenreList && filteredGenreList.length" class="absolute top-full left-0 mt-1 bg-white border border-stone-200 shadow-lg rounded z-30 w-48 max-h-52 overflow-y-auto">
-                      <button
-                        v-for="g in filteredGenreList" :key="g"
-                        class="block w-full text-left px-3 py-1.5 text-xs text-stone-600 hover:bg-amber-50 hover:text-amber-700 transition-colors"
-                        @mousedown.prevent="selectGenre(g)"
-                      >{{ g }}</button>
-                    </div>
-                  </div>
-                  <button class="normal-case tracking-normal text-amber-700 hover:text-amber-800 font-medium text-xs" @click="saveGenre">Save</button>
-                  <button class="normal-case tracking-normal text-stone-400 hover:text-stone-600 text-xs" @click="editingGenre = false">Cancel</button>
-                </template>
-                <template v-else>
-                  <button
-                    class="normal-case tracking-normal flex items-center gap-1 group hover:text-amber-700 transition-colors cursor-pointer"
-                    @click="startEditGenre"
-                  >
-                    <span>· {{ albumGenre || 'Add genre' }}</span>
-                    <svg class="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2a2 2 0 01.586-1.414z" />
-                    </svg>
-                  </button>
-                </template>
+              <div class="text-xs uppercase tracking-widest text-stone-400 mb-2 flex items-center gap-1">
+                <span>{{ ['Album', displayYear].filter(Boolean).join(' · ') }}</span>
+                <span v-if="displayGenre">· {{ displayGenre }}</span>
               </div>
-              <div class="font-serif text-3xl font-semibold mb-1.5">{{ currentAlbum.name }}</div>
-              <div class="text-sm text-stone-400 mb-4">{{ currentAlbum.artist }}</div>
+              <div class="font-serif text-3xl font-semibold mb-1.5">{{ displayTitle }}</div>
+              <div class="text-sm text-stone-400 mb-4">{{ displayArtist }}</div>
               <div class="flex gap-2.5">
                 <button class="bg-stone-900 text-white text-sm font-medium px-5 py-2 hover:bg-amber-700 transition-colors" @click="playAlbumTracks">▶ Play</button>
                 <button class="border border-stone-200 text-sm px-4 py-2 hover:border-amber-700 hover:text-amber-700 transition-colors" @click="queueAlbumTracks">+ Queue</button>
@@ -361,6 +332,50 @@
         </div>
       </div>
     </template>
+
+    <!-- Tag edit modal -->
+    <Teleport to="body">
+      <div v-if="editTagsOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" @click.self="closeTagEditor">
+        <div class="bg-white w-full max-w-sm mx-4 shadow-xl">
+          <div class="px-6 py-4 border-b border-stone-200">
+            <h2 class="font-serif text-lg font-semibold">Edit Album Tags</h2>
+          </div>
+          <div class="px-6 py-5 space-y-4">
+            <div>
+              <label class="block text-xs uppercase tracking-widest text-stone-400 mb-1.5">Title</label>
+              <input v-model="tagEdits.title" class="w-full border-b border-stone-300 py-1 text-sm bg-transparent outline-none focus:border-amber-700 transition-colors" placeholder="Album title…" />
+            </div>
+            <div>
+              <label class="block text-xs uppercase tracking-widest text-stone-400 mb-1.5">Artist</label>
+              <input v-model="tagEdits.artist" class="w-full border-b border-stone-300 py-1 text-sm bg-transparent outline-none focus:border-amber-700 transition-colors" placeholder="Artist name…" />
+            </div>
+            <div>
+              <label class="block text-xs uppercase tracking-widest text-stone-400 mb-1.5">Year</label>
+              <input v-model="tagEdits.year" type="number" class="w-full border-b border-stone-300 py-1 text-sm bg-transparent outline-none focus:border-amber-700 transition-colors" placeholder="e.g. 1994" />
+            </div>
+            <div class="relative">
+              <label class="block text-xs uppercase tracking-widest text-stone-400 mb-1.5">Genre</label>
+              <input v-model="tagEdits.genre"
+                class="w-full border-b border-stone-300 py-1 text-sm bg-transparent outline-none focus:border-amber-700 transition-colors"
+                placeholder="Genre…"
+                @focus="showTagGenreList = true"
+                @input="showTagGenreList = true"
+                @keydown.escape="showTagGenreList = false"
+              />
+              <div v-if="showTagGenreList && filteredTagGenreList.length" class="absolute bottom-full left-0 mb-1 bg-white border border-stone-200 shadow-lg z-10 w-full max-h-40 overflow-y-auto">
+                <button v-for="g in filteredTagGenreList" :key="g"
+                  class="block w-full text-left px-3 py-1.5 text-xs text-stone-600 hover:bg-amber-50 hover:text-amber-700"
+                  @mousedown.prevent="tagEdits.genre = g; showTagGenreList = false">{{ g }}</button>
+              </div>
+            </div>
+          </div>
+          <div class="px-6 py-4 border-t border-stone-200 flex justify-end gap-3">
+            <button class="text-sm text-stone-400 hover:text-stone-600 transition-colors" @click="closeTagEditor">Cancel</button>
+            <button class="bg-stone-900 text-white text-sm px-5 py-1.5 hover:bg-amber-700 transition-colors" @click="saveTagEdits">Save</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
 
   </div>
 </template>
@@ -474,49 +489,68 @@ const currentAlbum  = ref(null)
 const albumTracks   = ref([])
 const albumDetailCoverSrc   = ref(null)
 const albumDetailCoverState = ref('loading') // 'loading' | 'sidecar' | 'failed'
-const editingGenre  = ref(false)
-const genreInput    = ref('')
-const genreInputEl  = ref(null)
-const genreVersion  = ref(0)
-const showGenreList = ref(false)
+const TAGS_PREFIX  = 'attic_tags_'
+const GENRE_PREFIX = 'attic_genre_'
+const tagsVersion  = ref(0)
 
-const filteredGenreList = computed(() => {
-  const q = genreInput.value.toLowerCase().trim()
+const editTagsOpen     = ref(false)
+const showTagGenreList = ref(false)
+const tagEdits = reactive({ title: '', artist: '', year: '', genre: '' })
+
+function readAlbumTags(id) {
+  try { const raw = localStorage.getItem(TAGS_PREFIX + id); return raw ? JSON.parse(raw) : {} } catch { return {} }
+}
+
+const albumTags = computed(() => {
+  tagsVersion.value
+  return currentAlbum.value?.id ? readAlbumTags(currentAlbum.value.id) : {}
+})
+
+const displayTitle  = computed(() => albumTags.value.title  || currentAlbum.value?.name   || '')
+const displayArtist = computed(() => albumTags.value.artist || currentAlbum.value?.artist  || '')
+const displayYear   = computed(() => albumTags.value.year   || currentAlbum.value?.year    || null)
+const displayGenre  = computed(() => {
+  if (albumTags.value.genre) return albumTags.value.genre
+  try { const g = localStorage.getItem(GENRE_PREFIX + currentAlbum.value?.id); if (g) return g } catch {}
+  return currentAlbum.value?.genre || null
+})
+
+const filteredTagGenreList = computed(() => {
+  const q = tagEdits.genre.toLowerCase().trim()
   return q ? GENRES.filter(g => g.toLowerCase().includes(q)) : GENRES
 })
 
-const GENRE_PREFIX = 'attic_genre_'
-
-const albumGenre = computed(() => {
-  genreVersion.value
-  try { return localStorage.getItem(GENRE_PREFIX + currentAlbum.value?.id) || currentAlbum.value?.genre || null } catch { return currentAlbum.value?.genre || null }
-})
-
-async function startEditGenre() {
-  genreInput.value = albumGenre.value || ''
-  editingGenre.value = true
-  showGenreList.value = true
-  await nextTick()
-  genreInputEl.value?.focus()
-}
-
-function selectGenre(g) {
-  genreInput.value = g
-  showGenreList.value = false
-  saveGenre()
-}
-
-function saveGenre() {
+function openTagEditor() {
   if (!currentAlbum.value) return
-  const val = genreInput.value.trim()
-  if (val) localStorage.setItem(GENRE_PREFIX + currentAlbum.value.id, val)
-  else     localStorage.removeItem(GENRE_PREFIX + currentAlbum.value.id)
-  editingGenre.value = false
-  showGenreList.value = false
-  genreVersion.value++
+  tagEdits.title  = displayTitle.value
+  tagEdits.artist = displayArtist.value
+  tagEdits.year   = displayYear.value ? String(displayYear.value) : ''
+  tagEdits.genre  = displayGenre.value || ''
+  showTagGenreList.value = false
+  editTagsOpen.value = true
 }
 
-watch(() => currentAlbum.value?.id, () => { editingGenre.value = false; showGenreList.value = false })
+function closeTagEditor() {
+  editTagsOpen.value = false
+  showTagGenreList.value = false
+}
+
+function saveTagEdits() {
+  if (!currentAlbum.value) return
+  const id = currentAlbum.value.id
+  const updated = { ...readAlbumTags(id) }
+  const t = tagEdits.title.trim()
+  if (t && t !== currentAlbum.value.name)   updated.title  = t; else delete updated.title
+  const a = tagEdits.artist.trim()
+  if (a && a !== currentAlbum.value.artist) updated.artist = a; else delete updated.artist
+  const yr = parseInt(tagEdits.year) || null
+  if (yr && yr !== currentAlbum.value.year) updated.year   = yr; else delete updated.year
+  const g = tagEdits.genre.trim()
+  if (g) updated.genre = g; else delete updated.genre
+  try { localStorage.setItem(TAGS_PREFIX + id, JSON.stringify(updated)) } catch {}
+  tagsVersion.value++
+  closeTagEditor()
+}
 
 async function loadArtists() {
   loading.value = true
