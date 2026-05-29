@@ -254,7 +254,7 @@
             </div>
             <div>
               <label class="block text-xs uppercase tracking-widest text-stone-400 mb-1.5">Year</label>
-              <input v-model="tagEdits.year" type="number" class="w-full border-b border-stone-300 py-1 text-sm bg-transparent outline-none focus:border-amber-700 transition-colors" placeholder="e.g. 1994" />
+              <input v-model="tagEdits.year" type="text" inputmode="numeric" maxlength="4" class="w-full border-b border-stone-300 py-1 text-sm bg-transparent outline-none focus:border-amber-700 transition-colors" placeholder="e.g. 1994" />
             </div>
             <div class="relative">
               <label class="block text-xs uppercase tracking-widest text-stone-400 mb-1.5">Genre</label>
@@ -265,7 +265,7 @@
                 @input="showTagGenreList = true"
                 @keydown.escape="showTagGenreList = false"
               />
-              <div v-if="showTagGenreList && filteredTagGenreList.length" class="absolute bottom-full left-0 mb-1 bg-white border border-stone-200 shadow-lg z-10 w-full max-h-40 overflow-y-auto">
+              <div v-if="showTagGenreList && filteredTagGenreList.length" class="absolute top-full left-0 mt-1 bg-white border border-stone-200 shadow-lg z-20 w-full max-h-40 overflow-y-auto">
                 <button v-for="g in filteredTagGenreList" :key="g"
                   class="block w-full text-left px-3 py-1.5 text-xs text-stone-600 hover:bg-amber-50 hover:text-amber-700"
                   @mousedown.prevent="tagEdits.genre = g; showTagGenreList = false">{{ g }}</button>
@@ -432,8 +432,8 @@ async function saveTagEdits() {
       genre:       genre       || undefined,
     })
     await startScan().catch(() => {})
-  } catch {
-    tagSaveError.value = 'Could not save to server.'
+  } catch (e) {
+    tagSaveError.value = 'Save failed — ' + (e?.message || 'server unreachable')
     tagSaving.value = false
     return
   }
@@ -486,8 +486,8 @@ async function saveTrackEdits() {
       track:  num    || undefined,
     })
     await startScan().catch(() => {})
-  } catch {
-    trackSaveError.value = 'Could not save to server.'
+  } catch (e) {
+    trackSaveError.value = 'Save failed — ' + (e?.message || 'server unreachable')
     trackSaving.value = false
     return
   }

@@ -16,6 +16,7 @@ import (
 var coverMap      = map[string]string{}
 var albumCoverMap = map[string]string{}
 var albumDirMap   = map[string]string{}
+var artistDirMap  = map[string]string{}
 var nonAlnum   = regexp.MustCompile(`[^a-z0-9]+`)
 var yearPrefix = regexp.MustCompile(`^\d{4}-`)
 var logRequests bool
@@ -63,9 +64,10 @@ func normalize(s string) string {
 
 
 func buildMap(root string) {
-	freshArtist    := map[string]string{}
-	freshAlbum     := map[string]string{}
-	freshAlbumDirs := map[string]string{}
+	freshArtist     := map[string]string{}
+	freshAlbum      := map[string]string{}
+	freshAlbumDirs  := map[string]string{}
+	freshArtistDirs := map[string]string{}
 	letters, err := os.ReadDir(root)
 	if err != nil {
 		log.Printf("cannot read root %q: %v", root, err)
@@ -87,6 +89,7 @@ func buildMap(root string) {
 				continue
 			}
 			artistDir := filepath.Join(root, letter.Name(), artist.Name())
+			freshArtistDirs[normalize(artist.Name())] = artistDir
 			artistCover := filepath.Join(artistDir, "cover.jpg")
 			if _, err := os.Stat(artistCover); err == nil {
 				freshArtist[normalize(artist.Name())] = artistCover
@@ -113,7 +116,8 @@ func buildMap(root string) {
 	coverMap     = freshArtist
 	albumCoverMap = freshAlbum
 	albumDirMap  = freshAlbumDirs
-	log.Printf("indexed %d artist covers, %d album covers (%d dirs) from %s", len(coverMap), len(albumCoverMap), len(albumDirMap), root)
+	artistDirMap = freshArtistDirs
+	log.Printf("indexed %d artist covers, %d album covers (%d dirs), %d artist dirs from %s", len(coverMap), len(albumCoverMap), len(albumDirMap), len(artistDirMap), root)
 }
 
 // writeFrames opens an mp3 and overwrites the given ID3v2 text frames.
@@ -244,6 +248,51 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 	})
 
+	// /upload-avatar writes a cover.jpg into the artist directory, serving as the
+	// artist avatar (mirrors /upload for albums).
+	http.HandleFunc("/upload-avatar", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		name := r.URL.Query().Get("name")
+		if name == "" {
+			http.Error(w, "missing name param", http.StatusBadRequest)
+			return
+		}
+		dir, ok := artistDirMap[normalize(name)]
+		if !ok {
+			http.Error(w, "artist directory not found", http.StatusNotFound)
+			return
+		}
+		if err := r.ParseMultipartForm(10 << 20); err != nil {
+			http.Error(w, "invalid multipart form", http.StatusBadRequest)
+			return
+		}
+		file, _, err := r.FormFile("cover")
+		if err != nil {
+			http.Error(w, "missing cover file", http.StatusBadRequest)
+			return
+		}
+		defer file.Close()
+		dst := filepath.Join(dir, "cover.jpg")
+		out, err := os.Create(dst)
+		if err != nil {
+			log.Printf("upload-avatar: failed to create %s: %v", dst, err)
+			http.Error(w, "failed to save file", http.StatusInternalServerError)
+			return
+		}
+		defer out.Close()
+		if _, err := io.Copy(out, file); err != nil {
+			log.Printf("upload-avatar: failed to write %s: %v", dst, err)
+			http.Error(w, "failed to write file", http.StatusInternalServerError)
+			return
+		}
+		coverMap[normalize(name)] = dst
+		log.Printf("uploaded avatar for %q → %s", name, dst)
+		w.WriteHeader(http.StatusOK)
+	})
+
 	// /album-tags writes album-level ID3 frames (album title, artist, album artist,
 	// year, genre) to every .mp3 in the album directory. Per-track title/track-number
 	// (TIT2/TRCK) are untouched; artist here means the bulk TPE1 for all tracks.
@@ -261,6 +310,7 @@ func main() {
 		key := normalize(artist) + "|" + normalize(album)
 		dir, ok := albumDirMap[key]
 		if !ok {
+			log.Printf("album-tags: no dir for key %q (artist=%q album=%q)", key, artist, album)
 			http.Error(w, "album directory not found", http.StatusNotFound)
 			return
 		}
@@ -330,6 +380,7 @@ func main() {
 		key := normalize(artist) + "|" + normalize(album)
 		dir, ok := albumDirMap[key]
 		if !ok {
+			log.Printf("track-tags: no dir for key %q (artist=%q album=%q)", key, artist, album)
 			http.Error(w, "album directory not found", http.StatusNotFound)
 			return
 		}
