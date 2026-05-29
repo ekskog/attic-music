@@ -280,8 +280,9 @@
         </div>
         <div class="flex items-center gap-2">
           <h1 class="font-serif text-2xl md:text-4xl font-semibold truncate">{{ displayTitle }}</h1>
-          <button class="flex-shrink-0 p-1.5 rounded text-stone-500 hover:text-amber-700 hover:bg-amber-50 transition-colors" title="Edit tags" @click="openTagEditor">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2a2 2 0 01.586-1.414z" /></svg>
+          <button class="flex-shrink-0 inline-flex items-center gap-1 border border-stone-300 text-stone-600 text-xs px-2.5 py-1 rounded-full hover:border-amber-700 hover:text-amber-700 hover:bg-amber-50 transition-colors" title="Edit album tags" @click="openTagEditor">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2a2 2 0 01.586-1.414z" /></svg>
+            Edit
           </button>
         </div>
       </div>
@@ -319,7 +320,7 @@
             </div>
           </div>
 
-          <div class="grid gap-2 text-xs uppercase tracking-widest text-stone-400 px-3 pb-2 border-b border-stone-200 mb-1 [grid-template-columns:28px_1fr_44px_28px] md:[grid-template-columns:28px_1fr_1fr_44px_28px]">
+          <div class="grid gap-2 text-xs uppercase tracking-widest text-stone-400 px-3 pb-2 border-b border-stone-200 mb-1 [grid-template-columns:28px_1fr_44px_56px] md:[grid-template-columns:28px_1fr_1fr_44px_56px]">
             <span class="text-center">#</span><span>Title</span><span class="hidden md:block">Artist</span><span>Time</span><span></span>
           </div>
           <TrackItem
@@ -348,8 +349,12 @@
               <input v-model="tagEdits.title" class="w-full border-b border-stone-300 py-1 text-sm bg-transparent outline-none focus:border-amber-700 transition-colors" placeholder="Album title…" />
             </div>
             <div>
+              <label class="block text-xs uppercase tracking-widest text-stone-400 mb-1.5">Artist</label>
+              <input v-model="tagEdits.artist" class="w-full border-b border-stone-300 py-1 text-sm bg-transparent outline-none focus:border-amber-700 transition-colors" placeholder="Artist…" />
+            </div>
+            <div>
               <label class="block text-xs uppercase tracking-widest text-stone-400 mb-1.5">Album Artist</label>
-              <input v-model="tagEdits.artist" class="w-full border-b border-stone-300 py-1 text-sm bg-transparent outline-none focus:border-amber-700 transition-colors" placeholder="Album artist…" />
+              <input v-model="tagEdits.albumArtist" class="w-full border-b border-stone-300 py-1 text-sm bg-transparent outline-none focus:border-amber-700 transition-colors" placeholder="Album artist…" />
             </div>
             <div>
               <label class="block text-xs uppercase tracking-widest text-stone-400 mb-1.5">Year</label>
@@ -529,7 +534,7 @@ const tagsVersion  = ref(0)
 
 const editTagsOpen     = ref(false)
 const showTagGenreList = ref(false)
-const tagEdits = reactive({ title: '', artist: '', year: '', genre: '' })
+const tagEdits = reactive({ title: '', artist: '', albumArtist: '', year: '', genre: '' })
 const tagSaving    = ref(false)
 const tagSaveError = ref('')
 
@@ -576,10 +581,11 @@ function albumDiskIdentity() {
 
 function openTagEditor() {
   if (!currentAlbum.value) return
-  tagEdits.title  = displayTitle.value
-  tagEdits.artist = albumTags.value.artist || currentAlbum.value.albumArtist || currentAlbum.value.artist || ''
-  tagEdits.year   = displayYear.value ? String(displayYear.value) : ''
-  tagEdits.genre  = displayGenre.value || ''
+  tagEdits.title       = displayTitle.value
+  tagEdits.artist      = albumTags.value.artist || currentAlbum.value.artist || ''
+  tagEdits.albumArtist = albumTags.value.albumArtist || currentAlbum.value.albumArtist || currentAlbum.value.artist || ''
+  tagEdits.year        = displayYear.value ? String(displayYear.value) : ''
+  tagEdits.genre       = displayGenre.value || ''
   tagSaveError.value = ''
   showTagGenreList.value = false
   editTagsOpen.value = true
@@ -595,7 +601,8 @@ async function saveTagEdits() {
   const al = currentAlbum.value
   const id = al.id
   const title       = tagEdits.title.trim()
-  const albumArtist = tagEdits.artist.trim()
+  const artist      = tagEdits.artist.trim()
+  const albumArtist = tagEdits.albumArtist.trim()
   const year        = parseInt(tagEdits.year) || null
   const genre       = tagEdits.genre.trim()
   const { artist: diskArtist, album: diskAlbum } = albumDiskIdentity()
@@ -605,6 +612,7 @@ async function saveTagEdits() {
   try {
     await saveAlbumTags(diskArtist, diskAlbum, {
       title:       title       || undefined,
+      artist:      artist      || undefined,
       albumArtist: albumArtist || undefined,
       year:        year        || undefined,
       genre:       genre       || undefined,
@@ -618,9 +626,10 @@ async function saveTagEdits() {
 
   // Local override for instant feedback until Gonic finishes re-indexing.
   const updated = { ...readAlbumTags(id) }
-  if (title       && title       !== al.name)   updated.title  = title;       else delete updated.title
-  if (albumArtist && albumArtist !== al.artist) updated.artist = albumArtist; else delete updated.artist
-  if (year        && year        !== al.year)   updated.year   = year;        else delete updated.year
+  if (title  && title  !== al.name)   updated.title  = title;  else delete updated.title
+  if (artist && artist !== al.artist) updated.artist = artist; else delete updated.artist
+  if (albumArtist && albumArtist !== (al.albumArtist || al.artist)) updated.albumArtist = albumArtist; else delete updated.albumArtist
+  if (year   && year   !== al.year)   updated.year   = year;   else delete updated.year
   if (genre) updated.genre = genre; else delete updated.genre
   updated._diskArtist = diskArtist
   updated._diskAlbum  = diskAlbum

@@ -1,6 +1,6 @@
 <template>
   <div
-    class="grid gap-2 px-3 py-3 rounded-lg cursor-pointer items-center text-sm transition-colors active:bg-white group [grid-template-columns:28px_1fr_44px_28px] md:[grid-template-columns:28px_1fr_1fr_44px_28px]"
+    class="grid gap-2 px-3 py-3 rounded-lg cursor-pointer items-center text-sm transition-colors active:bg-white group [grid-template-columns:28px_1fr_44px_56px] md:[grid-template-columns:28px_1fr_1fr_44px_56px]"
     :class="{ 'text-amber-700': isPlaying }"
     @click="emit('play')"
   >
@@ -15,9 +15,17 @@
     <div class="hidden md:block truncate text-sm text-stone-400">{{ track.artist }}</div>
     <div class="text-xs text-stone-400 text-right">{{ fmt(track.duration) }}</div>
 
-    <div class="relative justify-self-center">
+    <div class="relative justify-self-end flex items-center gap-2">
       <button
-        class="md:opacity-0 md:group-hover:opacity-100 text-stone-400 hover:text-amber-700 active:text-amber-700 transition-all bg-transparent border-none text-lg leading-none"
+        v-if="editable"
+        class="text-stone-400 hover:text-amber-700 active:text-amber-700 transition-colors"
+        @click.stop="editTags"
+        title="Edit track tags"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2a2 2 0 01.586-1.414z" /></svg>
+      </button>
+      <button
+        class="text-stone-400 hover:text-amber-700 active:text-amber-700 transition-colors bg-transparent border-none text-lg leading-none"
         @click.stop="toggleMenu"
         title="Add to playlist"
       >+</button>
@@ -39,11 +47,6 @@
             class="w-full text-left px-3 py-2 text-sm text-stone-500 hover:bg-stone-50 transition-colors"
             @click.stop="addToQueue"
           >Add to queue</button>
-          <button
-            v-if="editable"
-            class="w-full text-left px-3 py-2 text-sm text-stone-500 hover:bg-amber-50 hover:text-amber-700 transition-colors"
-            @click.stop="editTags"
-          >Edit tags</button>
           <button
             v-if="removable"
             class="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors"

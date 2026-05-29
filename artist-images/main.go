@@ -244,8 +244,9 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	// /album-tags writes album-level ID3 frames (album title, album artist, year,
-	// genre) to every .mp3 in the album directory. Track-level frames are untouched.
+	// /album-tags writes album-level ID3 frames (album title, artist, album artist,
+	// year, genre) to every .mp3 in the album directory. Per-track title/track-number
+	// (TIT2/TRCK) are untouched; artist here means the bulk TPE1 for all tracks.
 	http.HandleFunc("/album-tags", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -270,6 +271,9 @@ func main() {
 		frames := map[string]string{}
 		if v := r.FormValue("title"); v != "" {
 			frames["TALB"] = v
+		}
+		if v := r.FormValue("artist"); v != "" {
+			frames["TPE1"] = v
 		}
 		if v := r.FormValue("albumArtist"); v != "" {
 			frames["TPE2"] = v

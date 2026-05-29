@@ -175,8 +175,9 @@
         </div>
         <div class="flex items-center gap-2">
           <h1 class="font-serif text-3xl font-semibold">{{ displayTitle }}</h1>
-          <button class="flex-shrink-0 p-1.5 text-stone-300 hover:text-amber-700 transition-colors" title="Edit tags" @click="openTagEditor">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2a2 2 0 01.586-1.414z" /></svg>
+          <button class="flex-shrink-0 inline-flex items-center gap-1 border border-stone-300 text-stone-600 text-xs px-2.5 py-1 rounded-full hover:border-amber-700 hover:text-amber-700 hover:bg-amber-50 transition-colors" title="Edit album tags" @click="openTagEditor">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2a2 2 0 01.586-1.414z" /></svg>
+            Edit
           </button>
         </div>
       </div>
@@ -215,15 +216,17 @@
             </div>
           </div>
           <div class="grid gap-2 text-xs uppercase tracking-widest text-stone-400 px-3 pb-2 border-b border-stone-200 mb-1"
-            style="grid-template-columns: 28px 1fr 44px 28px">
+            style="grid-template-columns: 28px 1fr 44px 56px">
             <span class="text-center">#</span><span>Title</span><span>Time</span><span></span>
           </div>
           <TrackItem
             v-for="(track, i) in albumTracks" :key="track.id"
             :track="track"
             :index="i"
+            editable
             @play="player.playTrack(track, albumTracks, i)"
             @queue="player.addToQueue(track)"
+            @edit="openTrackEditor"
           />
         </div>
       </div>
@@ -243,7 +246,11 @@
             </div>
             <div>
               <label class="block text-xs uppercase tracking-widest text-stone-400 mb-1.5">Artist</label>
-              <input v-model="tagEdits.artist" class="w-full border-b border-stone-300 py-1 text-sm bg-transparent outline-none focus:border-amber-700 transition-colors" placeholder="Artist name…" />
+              <input v-model="tagEdits.artist" class="w-full border-b border-stone-300 py-1 text-sm bg-transparent outline-none focus:border-amber-700 transition-colors" placeholder="Artist…" />
+            </div>
+            <div>
+              <label class="block text-xs uppercase tracking-widest text-stone-400 mb-1.5">Album Artist</label>
+              <input v-model="tagEdits.albumArtist" class="w-full border-b border-stone-300 py-1 text-sm bg-transparent outline-none focus:border-amber-700 transition-colors" placeholder="Album artist…" />
             </div>
             <div>
               <label class="block text-xs uppercase tracking-widest text-stone-400 mb-1.5">Year</label>
@@ -265,9 +272,40 @@
               </div>
             </div>
           </div>
-          <div class="px-6 py-4 border-t border-stone-200 flex justify-end gap-3">
-            <button class="text-sm text-stone-400 hover:text-stone-600 transition-colors" @click="closeTagEditor">Cancel</button>
-            <button class="bg-stone-900 text-white text-sm px-5 py-1.5 hover:bg-amber-700 transition-colors" @click="saveTagEdits">Save</button>
+          <div class="px-6 py-4 border-t border-stone-200 flex justify-end items-center gap-3">
+            <span v-if="tagSaveError" class="text-xs text-red-500 mr-auto">{{ tagSaveError }}</span>
+            <button class="text-sm text-stone-400 hover:text-stone-600 transition-colors disabled:opacity-50" :disabled="tagSaving" @click="closeTagEditor">Cancel</button>
+            <button class="bg-stone-900 text-white text-sm px-5 py-1.5 hover:bg-amber-700 transition-colors disabled:opacity-50" :disabled="tagSaving" @click="saveTagEdits">{{ tagSaving ? 'Saving…' : 'Save' }}</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Track tag edit modal -->
+    <Teleport to="body">
+      <div v-if="editTrackOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" @click.self="closeTrackEditor">
+        <div class="bg-white w-full max-w-sm mx-4 shadow-xl">
+          <div class="px-6 py-4 border-b border-stone-200">
+            <h2 class="font-serif text-lg font-semibold">Edit Track Tags</h2>
+          </div>
+          <div class="px-6 py-5 space-y-4">
+            <div>
+              <label class="block text-xs uppercase tracking-widest text-stone-400 mb-1.5">Title</label>
+              <input v-model="trackEdits.title" class="w-full border-b border-stone-300 py-1 text-sm bg-transparent outline-none focus:border-amber-700 transition-colors" placeholder="Track title…" />
+            </div>
+            <div>
+              <label class="block text-xs uppercase tracking-widest text-stone-400 mb-1.5">Artist</label>
+              <input v-model="trackEdits.artist" class="w-full border-b border-stone-300 py-1 text-sm bg-transparent outline-none focus:border-amber-700 transition-colors" placeholder="Track artist…" />
+            </div>
+            <div>
+              <label class="block text-xs uppercase tracking-widest text-stone-400 mb-1.5">Track #</label>
+              <input v-model="trackEdits.track" type="number" class="w-full border-b border-stone-300 py-1 text-sm bg-transparent outline-none focus:border-amber-700 transition-colors" placeholder="e.g. 3" />
+            </div>
+          </div>
+          <div class="px-6 py-4 border-t border-stone-200 flex justify-end items-center gap-3">
+            <span v-if="trackSaveError" class="text-xs text-red-500 mr-auto">{{ trackSaveError }}</span>
+            <button class="text-sm text-stone-400 hover:text-stone-600 transition-colors disabled:opacity-50" :disabled="trackSaving" @click="closeTrackEditor">Cancel</button>
+            <button class="bg-stone-900 text-white text-sm px-5 py-1.5 hover:bg-amber-700 transition-colors disabled:opacity-50" :disabled="trackSaving" @click="saveTrackEdits">{{ trackSaving ? 'Saving…' : 'Save' }}</button>
           </div>
         </div>
       </div>
@@ -280,7 +318,8 @@
 import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePlayerStore } from '../stores/player'
-import { getAlbumPage, getNewestAlbums, getRandomAlbums, getAlbum, coverUrl, getArtists } from '../api/subsonic'
+import { getAlbumPage, getNewestAlbums, getRandomAlbums, getAlbum, coverUrl, getArtists, startScan } from '../api/subsonic'
+import { saveAlbumTags, saveTrackTags } from '../api/tags'
 import { GENRES } from '../api/genres'
 import TrackItem from '../components/TrackItem.vue'
 
@@ -304,7 +343,15 @@ const tagsVersion  = ref(0)
 
 const editTagsOpen     = ref(false)
 const showTagGenreList = ref(false)
-const tagEdits = reactive({ title: '', artist: '', year: '', genre: '' })
+const tagEdits = reactive({ title: '', artist: '', albumArtist: '', year: '', genre: '' })
+const tagSaving    = ref(false)
+const tagSaveError = ref('')
+
+const editTrackOpen  = ref(false)
+const trackEdits     = reactive({ title: '', artist: '', track: '' })
+const trackSaving    = ref(false)
+const trackSaveError = ref('')
+let   editingTrack   = null
 
 function readAlbumTags(id) {
   try { const raw = localStorage.getItem(TAGS_PREFIX + id); return raw ? JSON.parse(raw) : {} } catch { return {} }
@@ -329,12 +376,25 @@ const filteredTagGenreList = computed(() => {
   return q ? GENRES.filter(g => g.toLowerCase().includes(q)) : GENRES
 })
 
+// The on-disk folder identity (album artist + album name as indexed). The sidecar
+// locates the folder by this, and it does NOT change when tags are edited.
+function albumDiskIdentity() {
+  const al = currentAlbum.value
+  const tags = readAlbumTags(al.id)
+  return {
+    artist: tags._diskArtist || al.albumArtist || al.artist || '',
+    album:  tags._diskAlbum  || al.name || '',
+  }
+}
+
 function openTagEditor() {
   if (!currentAlbum.value) return
-  tagEdits.title  = displayTitle.value
-  tagEdits.artist = displayArtist.value
-  tagEdits.year   = displayYear.value ? String(displayYear.value) : ''
-  tagEdits.genre  = displayGenre.value || ''
+  tagEdits.title       = displayTitle.value
+  tagEdits.artist      = albumTags.value.artist || currentAlbum.value.artist || ''
+  tagEdits.albumArtist = albumTags.value.albumArtist || currentAlbum.value.albumArtist || currentAlbum.value.artist || ''
+  tagEdits.year        = displayYear.value ? String(displayYear.value) : ''
+  tagEdits.genre       = displayGenre.value || ''
+  tagSaveError.value = ''
   showTagGenreList.value = false
   editTagsOpen.value = true
 }
@@ -344,21 +404,93 @@ function closeTagEditor() {
   showTagGenreList.value = false
 }
 
-function saveTagEdits() {
-  if (!currentAlbum.value) return
-  const id = currentAlbum.value.id
+async function saveTagEdits() {
+  if (!currentAlbum.value || tagSaving.value) return
+  const al = currentAlbum.value
+  const id = al.id
+  const title       = tagEdits.title.trim()
+  const artist      = tagEdits.artist.trim()
+  const albumArtist = tagEdits.albumArtist.trim()
+  const year        = parseInt(tagEdits.year) || null
+  const genre       = tagEdits.genre.trim()
+  const { artist: diskArtist, album: diskAlbum } = albumDiskIdentity()
+
+  tagSaveError.value = ''
+  tagSaving.value = true
+  try {
+    await saveAlbumTags(diskArtist, diskAlbum, {
+      title:       title       || undefined,
+      artist:      artist      || undefined,
+      albumArtist: albumArtist || undefined,
+      year:        year        || undefined,
+      genre:       genre       || undefined,
+    })
+    await startScan().catch(() => {})
+  } catch {
+    tagSaveError.value = 'Could not save to server.'
+    tagSaving.value = false
+    return
+  }
+
+  // Local override for instant feedback until Gonic finishes re-indexing.
   const updated = { ...readAlbumTags(id) }
-  const t = tagEdits.title.trim()
-  if (t && t !== currentAlbum.value.name)   updated.title  = t; else delete updated.title
-  const a = tagEdits.artist.trim()
-  if (a && a !== currentAlbum.value.artist) updated.artist = a; else delete updated.artist
-  const yr = parseInt(tagEdits.year) || null
-  if (yr && yr !== currentAlbum.value.year) updated.year   = yr; else delete updated.year
-  const g = tagEdits.genre.trim()
-  if (g) updated.genre = g; else delete updated.genre
+  if (title  && title  !== al.name)   updated.title  = title;  else delete updated.title
+  if (artist && artist !== al.artist) updated.artist = artist; else delete updated.artist
+  if (albumArtist && albumArtist !== (al.albumArtist || al.artist)) updated.albumArtist = albumArtist; else delete updated.albumArtist
+  if (year   && year   !== al.year)   updated.year   = year;   else delete updated.year
+  if (genre) updated.genre = genre; else delete updated.genre
+  updated._diskArtist = diskArtist
+  updated._diskAlbum  = diskAlbum
   try { localStorage.setItem(TAGS_PREFIX + id, JSON.stringify(updated)) } catch {}
   tagsVersion.value++
+  tagSaving.value = false
   closeTagEditor()
+}
+
+function openTrackEditor(track) {
+  editingTrack = track
+  trackEdits.title  = track.title  || ''
+  trackEdits.artist = track.artist || ''
+  trackEdits.track  = track.track ? String(track.track) : ''
+  trackSaveError.value = ''
+  editTrackOpen.value = true
+}
+
+function closeTrackEditor() {
+  editTrackOpen.value = false
+  editingTrack = null
+}
+
+async function saveTrackEdits() {
+  if (!editingTrack || !currentAlbum.value || trackSaving.value) return
+  const track  = editingTrack
+  const title  = trackEdits.title.trim()
+  const artist = trackEdits.artist.trim()
+  const num    = parseInt(trackEdits.track) || null
+  const file   = (track.path || '').split('/').pop()
+  if (!file) { trackSaveError.value = 'Track file path unavailable.'; return }
+  const { artist: diskArtist, album: diskAlbum } = albumDiskIdentity()
+
+  trackSaveError.value = ''
+  trackSaving.value = true
+  try {
+    await saveTrackTags(diskArtist, diskAlbum, file, {
+      title:  title  || undefined,
+      artist: artist || undefined,
+      track:  num    || undefined,
+    })
+    await startScan().catch(() => {})
+  } catch {
+    trackSaveError.value = 'Could not save to server.'
+    trackSaving.value = false
+    return
+  }
+
+  if (title)  track.title  = title
+  if (artist) track.artist = artist
+  if (num)    track.track  = num
+  trackSaving.value = false
+  closeTrackEditor()
 }
 
 const filterGenre       = ref(null)
