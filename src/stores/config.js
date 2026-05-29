@@ -5,9 +5,10 @@ export const useConfigStore = defineStore('config', () => {
   const server     = ref('')
   const username   = ref('')
   const password   = ref('')
-  const lastfmUser = ref('')
-  const lastfmKey  = ref('')
-  const loggedIn   = ref(false)
+  const lastfmUser       = ref('')
+  const lastfmKey        = ref('')
+  const turnstileSiteKey = ref('')
+  const loggedIn         = ref(false)
 
   async function load() {
     // Fetch server-side config first (from k8s configmap/secret)
@@ -17,7 +18,8 @@ export const useConfigStore = defineStore('config', () => {
       if (cfg.server)     server.value     = cfg.server
       if (cfg.username)   username.value   = cfg.username
       if (cfg.lastfmUser) lastfmUser.value = cfg.lastfmUser
-      if (cfg.lastfmKey)  lastfmKey.value  = cfg.lastfmKey
+      if (cfg.lastfmKey)        lastfmKey.value        = cfg.lastfmKey
+      if (cfg.turnstileSiteKey) turnstileSiteKey.value = cfg.turnstileSiteKey
     } catch(e) {}
 
     // Then overlay saved password from localStorage
@@ -46,5 +48,5 @@ export const useConfigStore = defineStore('config', () => {
     loggedIn.value = false
   }
 
-  return { server, username, password, lastfmUser, lastfmKey, loggedIn, load, saveSession, logout }
+  return { server, username, password, lastfmUser, lastfmKey, turnstileSiteKey, loggedIn, load, saveSession, logout }
 })
