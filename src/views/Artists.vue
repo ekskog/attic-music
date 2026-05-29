@@ -604,7 +604,13 @@ async function saveTagEdits() {
   const artist      = tagEdits.artist.trim()
   const albumArtist = tagEdits.albumArtist.trim()
   const year        = parseInt(tagEdits.year) || null
-  const genre       = tagEdits.genre.trim()
+  let   genre       = tagEdits.genre.trim()
+  // Restrict genre to the curated list — no free-text "bullshit genres".
+  if (genre) {
+    const canon = GENRES.find(g => g.toLowerCase() === genre.toLowerCase())
+    if (!canon) { tagSaveError.value = 'Pick a genre from the list.'; return }
+    genre = canon
+  }
   const { artist: diskArtist, album: diskAlbum } = albumDiskIdentity()
 
   tagSaveError.value = ''
