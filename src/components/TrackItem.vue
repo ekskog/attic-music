@@ -40,6 +40,11 @@
             @click.stop="addToQueue"
           >Add to queue</button>
           <button
+            v-if="editable"
+            class="w-full text-left px-3 py-2 text-sm text-stone-500 hover:bg-amber-50 hover:text-amber-700 transition-colors"
+            @click.stop="editTags"
+          >Edit tags</button>
+          <button
             v-if="removable"
             class="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors"
             @click.stop="removeFromPlaylist"
@@ -59,9 +64,10 @@ const props = defineProps({
   track:    { type: Object,  required: true },
   index:    { type: Number,  required: true },
   removable: { type: Boolean, default: false },
+  editable:  { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['play', 'queue', 'remove'])
+const emit = defineEmits(['play', 'queue', 'remove', 'edit'])
 
 const player  = usePlayerStore()
 const plStore = usePlaylistStore()
@@ -96,6 +102,11 @@ function addToQueue() {
 
 function removeFromPlaylist() {
   emit('remove', props.index)
+  closeMenu()
+}
+
+function editTags() {
+  emit('edit', props.track)
   closeMenu()
 }
 

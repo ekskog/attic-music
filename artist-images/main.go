@@ -9,6 +9,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/bogem/id3v2/v2"
 )
 
 var coverMap      = map[string]string{}
@@ -112,6 +114,25 @@ func buildMap(root string) {
 	albumCoverMap = freshAlbum
 	albumDirMap  = freshAlbumDirs
 	log.Printf("indexed %d artist covers, %d album covers (%d dirs) from %s", len(coverMap), len(albumCoverMap), len(albumDirMap), root)
+}
+
+// writeFrames opens an mp3 and overwrites the given ID3v2 text frames.
+// Keys are raw frame IDs (TALB, TPE1, TPE2, TIT2, TCON, TRCK, TDRC, TYER).
+// Empty values are skipped; existing frames of the same ID are replaced.
+func writeFrames(path string, frames map[string]string) error {
+	tag, err := id3v2.Open(path, id3v2.Options{Parse: true})
+	if err != nil {
+		return err
+	}
+	defer tag.Close()
+	for id, val := range frames {
+		if val == "" {
+			continue
+		}
+		tag.DeleteFrames(id)
+		tag.AddTextFrame(id, id3v2.EncodingUTF8, val)
+	}
+	return tag.Save()
 }
 
 func main() {
@@ -220,6 +241,129 @@ func main() {
 		}
 		albumCoverMap[key] = dst
 		log.Printf("uploaded cover for %q / %q → %s", artist, album, dst)
+		w.WriteHeader(http.StatusOK)
+	})
+
+	// /album-tags writes album-level ID3 frames (album title, album artist, year,
+	// genre) to every .mp3 in the album directory. Track-level frames are untouched.
+	http.HandleFunc("/album-tags", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		artist := r.URL.Query().Get("artist")
+		album  := r.URL.Query().Get("album")
+		if artist == "" || album == "" {
+			http.Error(w, "missing artist or album param", http.StatusBadRequest)
+			return
+		}
+		key := normalize(artist) + "|" + normalize(album)
+		dir, ok := albumDirMap[key]
+		if !ok {
+			http.Error(w, "album directory not found", http.StatusNotFound)
+			return
+		}
+		if err := r.ParseMultipartForm(1 << 20); err != nil {
+			http.Error(w, "invalid multipart form", http.StatusBadRequest)
+			return
+		}
+		frames := map[string]string{}
+		if v := r.FormValue("title"); v != "" {
+			frames["TALB"] = v
+		}
+		if v := r.FormValue("albumArtist"); v != "" {
+			frames["TPE2"] = v
+		}
+		if v := r.FormValue("genre"); v != "" {
+			frames["TCON"] = v
+		}
+		if v := r.FormValue("year"); v != "" {
+			frames["TDRC"] = v
+			frames["TYER"] = v
+		}
+		if len(frames) == 0 {
+			http.Error(w, "no tags to write", http.StatusBadRequest)
+			return
+		}
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			http.Error(w, "cannot read album directory", http.StatusInternalServerError)
+			return
+		}
+		count := 0
+		for _, e := range entries {
+			if e.IsDir() || !strings.HasSuffix(strings.ToLower(e.Name()), ".mp3") {
+				continue
+			}
+			file := filepath.Join(dir, e.Name())
+			if err := writeFrames(file, frames); err != nil {
+				log.Printf("album-tags: failed to write %s: %v", file, err)
+				continue
+			}
+			count++
+		}
+		if count == 0 {
+			http.Error(w, "no tracks written", http.StatusInternalServerError)
+			return
+		}
+		log.Printf("wrote album tags for %q / %q → %d tracks", artist, album, count)
+		w.WriteHeader(http.StatusOK)
+	})
+
+	// /track-tags writes track-level ID3 frames (title, artist, track number) to a
+	// single .mp3 within the album directory, identified by its filename.
+	http.HandleFunc("/track-tags", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		artist := r.URL.Query().Get("artist")
+		album  := r.URL.Query().Get("album")
+		if artist == "" || album == "" {
+			http.Error(w, "missing artist or album param", http.StatusBadRequest)
+			return
+		}
+		key := normalize(artist) + "|" + normalize(album)
+		dir, ok := albumDirMap[key]
+		if !ok {
+			http.Error(w, "album directory not found", http.StatusNotFound)
+			return
+		}
+		if err := r.ParseMultipartForm(1 << 20); err != nil {
+			http.Error(w, "invalid multipart form", http.StatusBadRequest)
+			return
+		}
+		name := r.FormValue("file")
+		if name == "" {
+			http.Error(w, "missing file param", http.StatusBadRequest)
+			return
+		}
+		// filepath.Base guards against path traversal — the target is always inside dir.
+		target := filepath.Join(dir, filepath.Base(name))
+		if fi, err := os.Stat(target); err != nil || fi.IsDir() {
+			http.Error(w, "track file not found", http.StatusNotFound)
+			return
+		}
+		frames := map[string]string{}
+		if v := r.FormValue("title"); v != "" {
+			frames["TIT2"] = v
+		}
+		if v := r.FormValue("artist"); v != "" {
+			frames["TPE1"] = v
+		}
+		if v := r.FormValue("track"); v != "" {
+			frames["TRCK"] = v
+		}
+		if len(frames) == 0 {
+			http.Error(w, "no tags to write", http.StatusBadRequest)
+			return
+		}
+		if err := writeFrames(target, frames); err != nil {
+			log.Printf("track-tags: failed to write %s: %v", target, err)
+			http.Error(w, "failed to write tags", http.StatusInternalServerError)
+			return
+		}
+		log.Printf("wrote track tags for %q / %q → %s", artist, album, filepath.Base(target))
 		w.WriteHeader(http.StatusOK)
 	})
 

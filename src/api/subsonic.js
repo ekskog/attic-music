@@ -208,6 +208,14 @@ export async function scrobble(id, submission = true) {
   await request('scrobble', params)
 }
 
+export async function startScan() {
+  return request('startScan')
+}
+
+export async function getScanStatus() {
+  return request('getScanStatus')
+}
+
 export async function search(query) {
   const data = await request('search3', { query, artistCount: 5, albumCount: 8, songCount: 8 })
   return {
