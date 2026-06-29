@@ -302,13 +302,13 @@
                 class="absolute inset-0 w-full h-full object-cover"
                 @error="onAlbumDetailCoverError"
               />
-              <label v-if="albumDetailCoverState === 'failed'"
+              <button v-if="albumDetailCoverState === 'failed'"
                 class="absolute inset-0 flex flex-col items-center justify-center cursor-pointer gap-1"
-                title="Upload cover art"
+                title="Search web for cover art"
+                @click="openCoverSearch"
               >
                 <span class="text-xs text-stone-400 font-medium">Add cover</span>
-                <input type="file" accept="image/*" class="hidden" @change="uploadAlbumCover" />
-              </label>
+              </button>
             </div>
             <div>
               <div class="text-xs uppercase tracking-widest text-stone-400 mb-2 flex items-center gap-1">
@@ -419,6 +419,39 @@
       </div>
     </Teleport>
 
+    <!-- Cover search modal -->
+    <Teleport to="body">
+      <div v-if="coverSearchOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @click.self="closeCoverSearch">
+        <div class="bg-white w-full max-w-md shadow-xl rounded-xl flex flex-col max-h-[80vh]">
+          <div class="px-5 py-4 border-b border-stone-100 flex items-center justify-between">
+            <h3 class="font-serif text-lg font-semibold">Pick a cover</h3>
+            <button class="text-stone-400 hover:text-stone-700" @click="closeCoverSearch">✕</button>
+          </div>
+          <div class="px-5 py-4 overflow-y-auto">
+            <div v-if="coverSearchLoading" class="py-10 text-center text-stone-400 text-sm">Searching…</div>
+            <div v-else-if="!coverCandidates.length" class="py-10 text-center text-stone-400 text-sm">No covers found.</div>
+            <div v-else class="grid grid-cols-3 gap-3">
+              <button v-for="(c, i) in coverCandidates" :key="i"
+                class="relative aspect-square rounded-lg overflow-hidden border border-stone-200 hover:border-amber-600 focus:border-amber-600 disabled:opacity-40 transition-colors"
+                :disabled="coverSaving"
+                @click="chooseCover(c)"
+              >
+                <img :src="c.url" class="absolute inset-0 w-full h-full object-cover" loading="lazy" @error="$event.target.closest('button').style.display='none'" />
+                <span class="absolute bottom-0 inset-x-0 bg-black/50 text-white text-[10px] py-0.5 text-center">{{ c.source }}</span>
+              </button>
+            </div>
+          </div>
+          <div class="px-5 py-3 border-t border-stone-100 flex items-center justify-between">
+            <label class="text-xs text-stone-500 hover:text-amber-700 cursor-pointer">
+              Upload from device
+              <input type="file" accept="image/*" class="hidden" @change="uploadAlbumCover" />
+            </label>
+            <button class="text-xs px-4 py-2 rounded-full border border-stone-200 hover:border-stone-400 transition-colors" @click="closeCoverSearch">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
   </div>
 </template>
 
@@ -428,6 +461,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { usePlayerStore } from '../stores/player'
 import { getArtists, getArtist, getAlbum, coverUrl, getNewestAlbums, getArtistGenreMap, startScan } from '../api/subsonic'
 import { saveAlbumTags, saveTrackTags } from '../api/tags'
+import { searchAlbumCovers } from '../api/covers'
 import { GENRES } from '../api/genres'
 import TrackItem  from '../components/TrackItem.vue'
 import ArtistCard from '../components/ArtistCard.vue'
@@ -532,6 +566,12 @@ const currentAlbum  = ref(null)
 const albumTracks   = ref([])
 const albumDetailCoverSrc   = ref(null)
 const albumDetailCoverState = ref('loading') // 'loading' | 'sidecar' | 'failed'
+
+const coverSearchOpen    = ref(false)
+const coverSearchLoading = ref(false)
+const coverCandidates    = ref([])
+const coverSaving        = ref(false)
+
 const TAGS_PREFIX  = 'attic_tags_'
 const GENRE_PREFIX = 'attic_genre_'
 const tagsVersion  = ref(0)
@@ -810,7 +850,53 @@ async function uploadAlbumCover(e) {
   if (res.ok) {
     albumDetailCoverSrc.value = `/artist-images/album?artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}&t=${Date.now()}`
     albumDetailCoverState.value = 'sidecar'
+    coverSearchOpen.value = false
   }
+}
+
+// Save a chosen remote cover: pull its bytes (both CDNs allow CORS) and re-POST
+// to the sidecar /upload, same as a device upload.
+async function chooseCover(c) {
+  if (!currentAlbum.value || coverSaving.value) return
+  coverSaving.value = true
+  const artist = currentAlbum.value.albumArtist || currentAlbum.value.artist
+  const album  = currentAlbum.value.name
+  try {
+    const blob = await (await fetch(c.url)).blob()
+    const form = new FormData()
+    form.append('cover', blob, 'cover.jpg')
+    const res = await fetch(
+      `/artist-images/upload?artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}`,
+      { method: 'POST', body: form }
+    )
+    if (res.ok) {
+      albumDetailCoverSrc.value = `/artist-images/album?artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}&t=${Date.now()}`
+      albumDetailCoverState.value = 'sidecar'
+      coverSearchOpen.value = false
+    }
+  } catch (_) {
+    /* leave modal open so the user can pick another */
+  } finally {
+    coverSaving.value = false
+  }
+}
+
+async function openCoverSearch() {
+  if (!currentAlbum.value) return
+  coverSearchOpen.value = true
+  coverSearchLoading.value = true
+  coverCandidates.value = []
+  const artist = currentAlbum.value.albumArtist || currentAlbum.value.artist
+  const album  = currentAlbum.value.name
+  try {
+    coverCandidates.value = await searchAlbumCovers(artist, album)
+  } finally {
+    coverSearchLoading.value = false
+  }
+}
+
+function closeCoverSearch() {
+  coverSearchOpen.value = false
 }
 
 
